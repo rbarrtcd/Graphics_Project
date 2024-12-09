@@ -1,11 +1,12 @@
 # ninja log v5
 32	315	7554569452530176	external/glad-3.3/CMakeFiles/glad.dir/src/gl.c.obj	724458bd0aac1e71
-409	869	7539957258195854	libglad.a	8866dc0488dd52b7
 195	907	7554569458460167	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_tls.c.obj	9ef64dabe9ecd841
+1767	1959	7554697799400477	test_scene.exe	17545c807211a77d
+409	869	7539957258195854	libglad.a	8866dc0488dd52b7
+116	890	7554569458250181	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/input.c.obj	841b1ff8aa9b87b3
+235	954	7554569458930163	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_time.c.obj	9462df58f82ed502
 1311	1488	7554569464230409	glfw3dll.a	d2b518cd64bf4af4
 1	885	7539957258245860	CMakeFiles/lab4_skeleton.dir/lab4/render/shader.cpp.obj	55df19a881dfe745
-235	954	7554569458930163	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_time.c.obj	9462df58f82ed502
-116	890	7554569458250181	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/input.c.obj	841b1ff8aa9b87b3
 74	885	7554569458230170	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/monitor.c.obj	88ab0986b0506cb5
 92	884	7554569458210167	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/context.c.obj	335f3a0bfd1e191b
 53	858	7554569457930182	external/glfw-3.1.2/src/CMakeFiles/glfw.dir/init.c.obj	1ff8d0cb7b041245
@@ -23,8 +24,7 @@
 11748	20876	7541559906248956	lab4_character.exe	58169f459473637a
 315	532	7554569454670176	libglad.dll	f9e74d1115f5008
 315	532	7554569454670176	libglad.dll.a	f9e74d1115f5008
-3	234	7554569450900166	CMakeFiles/test_scene.dir/test_scene.cpp.obj	9957a5f28d7a2316
-20	708	7554569456450193	CMakeFiles/test_scene.dir/lab4/render/shader.cpp.obj	9c86232ab20dba7
+6	1766	7554697797497213	CMakeFiles/test_scene.dir/test_scene.cpp.obj	f27fc7048f7d2f2a
 4	488	7554571397046763	CMakeFiles/test_scene.dir/lab4/render/shader.cpp.obj	8d8f1834bbc08fd3
-18	1607	7554571408206740	CMakeFiles/test_scene.dir/test_scene.cpp.obj	f27fc7048f7d2f2a
-1608	1800	7554571410136731	test_scene.exe	17545c807211a77d
+6	1734	7554697910526983	CMakeFiles/test_scene.dir/test_scene.cpp.obj	f27fc7048f7d2f2a
+1734	1932	7554697912496957	test_scene.exe	17545c807211a77d
