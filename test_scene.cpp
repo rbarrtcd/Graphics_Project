@@ -15,6 +15,7 @@
 
 static GLFWwindow *window;
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 // OpenGL camera view parameters
 static glm::vec3 eye_center;
@@ -26,6 +27,27 @@ static float viewAzimuth = 0.f;
 static float viewPolar = 0.f;
 static float viewDistance = 800.0f;
 
+
+
+static glm::vec3 cameraSpeed = glm::vec3(250, 250, 250);
+float yaw = -90.0f;
+float pitch = 0.0f;
+float mouseSensitivity = 0.05f;
+float lastX, lastY;
+
+
+const glm::vec3 wave500(0.0f, 255.0f, 146.0f);
+const glm::vec3 wave600(255.0f, 190.0f, 0.0f);
+const glm::vec3 wave700(205.0f, 0.0f, 0.0f);
+static glm::vec3 lightIntensity = 5.0f * (8.0f * wave500 + 15.6f * wave600 + 18.4f * wave700);
+static glm::vec3 lightPosition(-275.0f, 500.0f, -275.0f);
+
+// Shadow mapping
+static glm::vec3 lightUp(0, 0, 1);
+static int shadowMapWidth = 0;
+static int shadowMapHeight = 0;
+
+
 static GLuint LoadTextureTileBox(const char *texture_file_path) {
     int w, h, channels;
     uint8_t* img = stbi_load(texture_file_path, &w, &h, &channels, 3);
@@ -34,8 +56,8 @@ static GLuint LoadTextureTileBox(const char *texture_file_path) {
     glBindTexture(GL_TEXTURE_2D, texture);
 
     // To tile textures on a box, we set wrapping to repeat
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -49,6 +71,101 @@ static GLuint LoadTextureTileBox(const char *texture_file_path) {
 
     return texture;
 }
+
+
+
+void computeNormals(const GLfloat* vertexBuffer, const GLuint* indexBuffer,
+                    int vertexCount, int indexCount, GLfloat* normalBuffer) {
+    // Initialize normalBuffer to zero
+    memset(normalBuffer, 0, sizeof(GLfloat) * vertexCount * 3);
+
+    // Iterate through each triangle (3 indices form a triangle)
+    for (int i = 0; i < indexCount; i += 3) {
+        // Get the indices of the vertices forming this triangle
+        GLint idx0 = indexBuffer[i];
+        GLint idx1 = indexBuffer[i + 1];
+        GLint idx2 = indexBuffer[i + 2];
+
+        // Retrieve the positions of the vertices
+        glm::vec3 v0(vertexBuffer[idx0 * 3], vertexBuffer[idx0 * 3 + 1], vertexBuffer[idx0 * 3 + 2]);
+        glm::vec3 v1(vertexBuffer[idx1 * 3], vertexBuffer[idx1 * 3 + 1], vertexBuffer[idx1 * 3 + 2]);
+        glm::vec3 v2(vertexBuffer[idx2 * 3], vertexBuffer[idx2 * 3 + 1], vertexBuffer[idx2 * 3 + 2]);
+
+        // Compute the edges of the triangle
+        glm::vec3 edge1 = v1 - v0;
+        glm::vec3 edge2 = v2 - v0;
+
+        // Compute the face normal (cross product of the edges)
+        glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
+
+        // Add the face normal to each vertex normal of the triangle
+        normalBuffer[idx0 * 3]     += faceNormal.x;
+        normalBuffer[idx0 * 3 + 1] += faceNormal.y;
+        normalBuffer[idx0 * 3 + 2] += faceNormal.z;
+
+        normalBuffer[idx1 * 3]     += faceNormal.x;
+        normalBuffer[idx1 * 3 + 1] += faceNormal.y;
+        normalBuffer[idx1 * 3 + 2] += faceNormal.z;
+
+        normalBuffer[idx2 * 3]     += faceNormal.x;
+        normalBuffer[idx2 * 3 + 1] += faceNormal.y;
+        normalBuffer[idx2 * 3 + 2] += faceNormal.z;
+    }
+
+    // Normalize the accumulated normals for each vertex
+    for (int i = 0; i < vertexCount; ++i) {
+        glm::vec3 normal(normalBuffer[i * 3], normalBuffer[i * 3 + 1], normalBuffer[i * 3 + 2]);
+        normal = glm::normalize(normal);
+
+        normalBuffer[i * 3]     = normal.x;
+        normalBuffer[i * 3 + 1] = normal.y;
+        normalBuffer[i * 3 + 2] = normal.z;
+    }
+}
+
+
+void transformNormals(GLfloat* normalBuffer, int normalCount, const glm::mat4& transformMatrix) {
+    // Extract the rotation and scale from the transformation matrix
+    glm::mat4 rotationScaleMatrix = glm::mat4(transformMatrix);
+    rotationScaleMatrix[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Remove translation part (set translation to zero)
+
+    for (int i = 0; i < normalCount; ++i) {
+        // Load the normal from the buffer
+        glm::vec3 normal(normalBuffer[i * 3], normalBuffer[i * 3 + 1], normalBuffer[i * 3 + 2]);
+
+        // Apply the rotation and scale transformation (no translation applied)
+        normal = glm::normalize(glm::mat3(rotationScaleMatrix) * normal);
+
+        // Store the transformed normal back into the buffer
+        normalBuffer[i * 3]     = normal.x;
+        normalBuffer[i * 3 + 1] = normal.y;
+        normalBuffer[i * 3 + 2] = normal.z;
+    }
+}
+
+glm::mat4 computeModelMatrix(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scale) {
+    // First create the individual transformation matrices
+    glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), position); // Create translation matrix
+    glm::mat4 rotationMatrixX = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around x-axis
+    glm::mat4 rotationMatrixY = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
+    glm::mat4 rotationMatrixZ = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
+    glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale); // Create scale matrix
+
+    // Multiply the matrices together in the correct order: scale -> rotate -> translate
+    return translationMatrix * rotationMatrixZ * rotationMatrixY * rotationMatrixX * scaleMatrix;
+}
+
+
+class Light {
+    glm::vec3 position;
+    glm::vec3 Intensity;
+
+    Light(    glm::vec3 position, glm::vec3 Intensity){
+        this->position = position;
+        this->Intensity = Intensity;
+    }
+
+};
 
 class Geometry {
 public:
@@ -79,16 +196,18 @@ public:
     glm::vec3 scale;
     glm::vec3 rotation;
 
-    GLfloat vertex_buffer_data[12] = {
+    static const GLuint numVertices =4;
+    static const GLuint numIndices = 6;
+    GLfloat vertex_buffer_data[numVertices*3] = {
             -0.5f, 0.0f, 0.5f,
             0.5f, 0.0f, 0.5f,
             0.5f, 0.0f, -0.5f,
             -0.5f, 0.0f, -0.5f,
     };
-    static const GLuint numIndices = 12;
 
+    GLfloat normal_buffer_data[numVertices*3];
 
-    GLfloat color_buffer_data[numIndices] = {
+    GLfloat color_buffer_data[numVertices*3] = {
             1.0f, 1.0f, 1.0f,
             1.0f, 1.0f, 1.0f,
             1.0f, 1.0f, 1.0f,
@@ -96,13 +215,13 @@ public:
     };
 
 
-    GLuint index_buffer_data[numIndices/2] = {
+    GLuint index_buffer_data[numIndices] = {
             0, 1, 2,
             0, 2, 3,
     };
 
 
-    GLfloat uv_buffer_data[(numIndices/3)*2] = {
+    GLfloat uv_buffer_data[(numVertices)*2] = {
             0.0f, 0.0f,
             1.0f, 0.0f,
             0.0f, 1.0f,
@@ -114,6 +233,7 @@ public:
     GLuint vertexBufferID;
     GLuint indexBufferID;
     GLuint colorBufferID;
+    GLuint normalBufferID;
     GLuint uvBufferID;
     GLuint textureID;
     GLuint programID;
@@ -121,6 +241,7 @@ public:
     // Shader variable IDs
     GLuint mvpMatrixID;
     GLuint textureSamplerID;
+    GLuint modelMatrixID;
     //static GLuint programID;
 
     Plane(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, GLuint programID)
@@ -136,7 +257,8 @@ public:
         this->position = position;
         this->scale = scale;
         this->rotation = rotation;
-
+        computeNormals(vertex_buffer_data, index_buffer_data, numVertices, numIndices, normal_buffer_data);
+        transformNormals(normal_buffer_data, numVertices, computeModelMatrix(position, rotation, scale));
         // Create a vertex array object
         glGenVertexArrays(1, &vertexArrayID);
         glBindVertexArray(vertexArrayID);
@@ -176,6 +298,8 @@ public:
         // Get a handle for our "MVP" uniform
         mvpMatrixID = glGetUniformLocation(programID, "MVP");
 
+        modelMatrixID = glGetUniformLocation(programID, "modelMatrix");
+
         textureID = LoadTextureTileBox(texture_file_path);
 
         textureSamplerID = glGetUniformLocation(programID,"textureSampler");
@@ -192,28 +316,25 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, colorBufferID);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
-
-        glm::mat4 modelMatrix = glm::mat4();
-        // Translate the box to its position
-        modelMatrix = glm::translate(modelMatrix, position);
-
-        // Apply rotation around the x, y, and z axes
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around x-axis
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
-
-
-        // Scale the box along each axis
-        modelMatrix = glm::scale(modelMatrix, scale);
-        // Set model-view-projection matrix
-        glm::mat4 mvp = cameraMatrix * modelMatrix;
-        glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvp[0][0]);
-
         // Enable UV buffer and texture sampler
         glEnableVertexAttribArray(2);
         glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glEnableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+
+        glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
+        // Set model-view-projection matrix
+        glm::mat4 mvp = cameraMatrix * modelMatrix;
+        glUniformMatrix4fv(modelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+        glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvp[0][0]);
+
+
+
         // Set textureSampler to use texture unit 0
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureID);
@@ -222,7 +343,7 @@ public:
         // Draw the box
         glDrawElements(
                 GL_TRIANGLES,      // mode
-                numIndices/2,    	// number of indices
+                numIndices,    	// number of indices
                 GL_UNSIGNED_INT,   // type
                 (void*)0           // element array buffer offset
         );
@@ -230,6 +351,7 @@ public:
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
+        glDisableVertexAttribArray(3);
     }
 
     void cleanup() {
@@ -248,91 +370,142 @@ public:
     glm::vec3 position;
     glm::vec3 scale;
     glm::vec3 rotation;
+    static const GLuint numVertices =24;
+    static const GLuint numIndices = 36;
+    GLfloat vertex_buffer_data[numVertices*3] = {	// Vertex definition for a canonical box
+            // Front face
+            -0.5f, -0.5f, 0.5f,
+            0.5f, -0.5f, 0.5f,
+            0.5f, 0.5f, 0.5f,
+            -0.5f, 0.5f, 0.5f,
 
-    GLfloat vertex_buffer_data[24] = {
+            // Back face
+            0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, 0.5f, -0.5f,
+            0.5f, 0.5f, -0.5f,
+
+            // Left face
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, 0.5f,
+            -0.5f, 0.5f, 0.5f,
+            -0.5f, 0.5f, -0.5f,
+
+            // Right face
+            0.5f, -0.5f, 0.5f,
+            0.5f, -0.5f, -0.5f,
+            0.5f, 0.5f, -0.5f,
+            0.5f, 0.5f, 0.5f,
+
+            // Top face
             -0.5f, 0.5f, 0.5f,
             0.5f, 0.5f, 0.5f,
             0.5f, 0.5f, -0.5f,
             -0.5f, 0.5f, -0.5f,
 
-            -0.5f, -0.5f, 0.5f,
-            0.5f, -0.5f, 0.5f,
-            0.5f, -0.5f, -0.5f,
+            // Bottom face
             -0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f, 0.5f,
+            -0.5f, -0.5f, 0.5f,
     };
-    static const GLuint numIndices = 36;
 
+    GLfloat normal_buffer_data[numVertices*3];
 
-    GLfloat color_buffer_data[24] = {
-            1.0f, 0.0f, 1.0f,
-            0.0f, 1.0f, 1.0f,
+    GLfloat color_buffer_data[numVertices*3] = {
+            // Front, red
+            1.0f, 0.0f, 0.0f,
+            1.0f, 0.0f, 0.0f,
+            1.0f, 0.0f, 0.0f,
+            1.0f, 0.0f, 0.0f,
+
+            // Back, yellow
             1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+
+            // Left, green
+            0.0f, 1.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
             0.0f, 1.0f, 0.0f,
 
+            // Right, cyan
+            0.0f, 1.0f, 1.0f,
+            0.0f, 1.0f, 1.0f,
+            0.0f, 1.0f, 1.0f,
+            0.0f, 1.0f, 1.0f,
+
+            // Top, blue
             0.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 0.0f,
-            1.0f, 1.0f, 1.0f,
-            0.0f, 0.5f, 0.0f,
+            0.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f,
+
+            // Bottom, magenta
+            1.0f, 0.0f, 1.0f,
+            1.0f, 0.0f, 1.0f,
+            1.0f, 0.0f, 1.0f,
+            1.0f, 0.0f, 1.0f,
     };
 
-
-    GLuint index_buffer_data[36] = {
-            //top
+    GLuint index_buffer_data[numIndices] = {		// 12 triangle faces of a box
             0, 1, 2,
             0, 2, 3,
 
-            //bottom
-            6, 5, 4,
-            7, 6, 4,
+            4, 5, 6,
+            4, 6, 7,
 
-            //Pos x
-            5, 2, 1,
-            2, 5, 6,
+            8, 9, 10,
+            8, 10, 11,
 
-            //Neg X
-            3, 4, 0,
-            7, 4, 3,
+            12, 13, 14,
+            12, 14, 15,
 
-            //Pos Z
-            0, 4, 1,
-            1, 4, 5,
+            16, 17, 18,
+            16, 18, 19,
 
-            //Neg Z
-            2, 6, 3,
-            3, 6, 7,
+            20, 21, 22,
+            20, 22, 23,
     };
 
-
-    GLfloat uv_buffer_data[48] = {
+    GLfloat uv_buffer_data[numVertices * 2] = {
+            // Top face
             0.0f, 0.0f,
             1.0f, 0.0f,
-            0.0f, 1.0f,
             1.0f, 1.0f,
+            0.0f, 1.0f,
 
+            // Bottom face
             0.0f, 0.0f,
             1.0f, 0.0f,
-            0.0f, 1.0f,
             1.0f, 1.0f,
+            0.0f, 1.0f,
 
+            // Front face
             0.0f, 0.0f,
             1.0f, 0.0f,
-            0.0f, 1.0f,
             1.0f, 1.0f,
+            0.0f, 1.0f,
 
+            // Back face
             0.0f, 0.0f,
             1.0f, 0.0f,
-            0.0f, 1.0f,
             1.0f, 1.0f,
+            0.0f, 1.0f,
 
+            // Right face
             0.0f, 0.0f,
             1.0f, 0.0f,
-            0.0f, 1.0f,
             1.0f, 1.0f,
+            0.0f, 1.0f,
 
+            // Left face
             0.0f, 0.0f,
             1.0f, 0.0f,
-            0.0f, 1.0f,
             1.0f, 1.0f,
+            0.0f, 1.0f
     };
 
     // OpenGL buffers
@@ -340,12 +513,14 @@ public:
     GLuint vertexBufferID;
     GLuint indexBufferID;
     GLuint colorBufferID;
+    GLuint normalBufferID;
     GLuint uvBufferID;
     GLuint textureID;
     GLuint programID;
 
     // Shader variable IDs
     GLuint mvpMatrixID;
+    GLuint modelMatrixID;
     GLuint textureSamplerID;
     //static GLuint programID;
 
@@ -363,6 +538,8 @@ public:
         this->scale = scale;
         this->rotation = rotation;
 
+        computeNormals(vertex_buffer_data, index_buffer_data, numVertices, numIndices, normal_buffer_data);
+        transformNormals(normal_buffer_data, numVertices, computeModelMatrix(position, rotation, scale));
         // Create a vertex array object
         glGenVertexArrays(1, &vertexArrayID);
         glBindVertexArray(vertexArrayID);
@@ -381,6 +558,10 @@ public:
         glGenBuffers(1, &uvBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
         glBufferData(GL_ARRAY_BUFFER, sizeof(uv_buffer_data), uv_buffer_data, GL_STATIC_DRAW);
+
+        glGenBuffers(1, &normalBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_data), normal_buffer_data, GL_STATIC_DRAW);
 
         // Create an index buffer object to store the index data that defines triangle faces
         glGenBuffers(1, &indexBufferID);
@@ -402,6 +583,8 @@ public:
         // Get a handle for our "MVP" uniform
         mvpMatrixID = glGetUniformLocation(programID, "MVP");
 
+        modelMatrixID = glGetUniformLocation(programID, "modelMatrix");
+
         textureID = LoadTextureTileBox(texture_file_path);
 
         textureSamplerID = glGetUniformLocation(programID,"textureSampler");
@@ -418,28 +601,25 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, colorBufferID);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
-
-        glm::mat4 modelMatrix = glm::mat4();
-        // Translate the box to its position
-        modelMatrix = glm::translate(modelMatrix, position);
-
-        // Apply rotation around the x, y, and z axes
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around x-axis
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate around y-axis
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around z-axis
-
-
-        // Scale the box along each axis
-        modelMatrix = glm::scale(modelMatrix, scale);
-        // Set model-view-projection matrix
-        glm::mat4 mvp = cameraMatrix * modelMatrix;
-        glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvp[0][0]);
-
         // Enable UV buffer and texture sampler
         glEnableVertexAttribArray(2);
         glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glEnableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+
+        glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
+        // Set model-view-projection matrix
+        glm::mat4 mvp = cameraMatrix * modelMatrix;
+        glUniformMatrix4fv(modelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+        glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvp[0][0]);
+
+
+
         // Set textureSampler to use texture unit 0
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureID);
@@ -448,7 +628,7 @@ public:
         // Draw the box
         glDrawElements(
                 GL_TRIANGLES,      // mode
-                36,    	// number of indices
+                numIndices,    	// number of indices
                 GL_UNSIGNED_INT,   // type
                 (void*)0           // element array buffer offset
         );
@@ -456,6 +636,7 @@ public:
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
+        glDisableVertexAttribArray(3);
     }
 
     void cleanup() {
@@ -469,8 +650,82 @@ public:
     }
 };
 
+void camera_update(float deltaTime){
+    glm::vec3 forward = glm::normalize(lookat - eye_center);
+    glm::vec3 right = glm::normalize(glm::cross(forward, up));
+    glm::vec3 current_speed = cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        current_speed *= glm::vec3(3.0);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        eye_center += forward * current_speed*deltaTime;
+        lookat += forward * current_speed*deltaTime;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        eye_center -= forward * current_speed*deltaTime;
+        lookat -= forward * current_speed*deltaTime;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        eye_center -= right * current_speed*deltaTime;
+        lookat -= right * current_speed*deltaTime;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        eye_center += right * current_speed*deltaTime;
+        lookat += right * current_speed*deltaTime;
+    }
+}
 
 
+
+// Function to create and configure the G-buffer
+void createGBuffer(GLuint* gBuffer, GLuint* gPosition, GLuint* gNormal, GLuint* gAlbedoSpec, GLuint* rboDepth, int width, int height) {
+    // Generate and bind the G-buffer
+    glGenFramebuffers(1, gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, *gBuffer);
+
+    // Create Position texture
+    glGenTextures(1, gPosition);
+    glBindTexture(GL_TEXTURE_2D, *gPosition);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *gPosition, 0);
+
+    // Create Normal texture
+    glGenTextures(1, gNormal);
+    glBindTexture(GL_TEXTURE_2D, *gNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, *gNormal, 0);
+
+    // Create Albedo + Specular texture
+    glGenTextures(1, gAlbedoSpec);
+    glBindTexture(GL_TEXTURE_2D, *gAlbedoSpec);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, *gAlbedoSpec, 0);
+
+    // Create and attach Depth buffer
+    glGenRenderbuffers(1, rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, *rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, *rboDepth);
+
+    // Specify the color attachments for the framebuffer
+    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3, attachments);
+
+    // Check if framebuffer is complete
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Framebuffer is not complete!" << std::endl;
+    }
+
+    // Unbind the framebuffer to prevent accidental modification
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
 
 int main(void)
@@ -487,8 +742,11 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // For MacOS
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    int const screenWidth = 1920;
+    int const screenHeight = 1080;
+
     // Open a window and create its OpenGL context
-    window = glfwCreateWindow(1920, 1080, "Graphics Lab", NULL, NULL);
+    window = glfwCreateWindow(screenWidth, screenHeight, "Graphics Lab", NULL, NULL);
     if (window == NULL)
     {
         std::cerr << "Failed to open a GLFW window." << std::endl;
@@ -500,6 +758,8 @@ int main(void)
     // Ensure we can capture the escape key being pressed below
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Load OpenGL functions, gladLoadGL returns the loaded version, 0 on error.
     int version = gladLoadGL(glfwGetProcAddress);
@@ -521,6 +781,13 @@ int main(void)
     }
 
 
+    GLuint gBuffer, gPosition, gNormal, gAlbedoSpec, rboDepth;
+
+
+    // Create and configure the G-buffer
+    createGBuffer(&gBuffer, &gPosition, &gNormal, &gAlbedoSpec, &rboDepth, screenWidth, screenHeight);
+
+
     // Background
     glClearColor(0.2f, 0.2f, 0.25f, 0.0f);
 
@@ -532,13 +799,13 @@ int main(void)
     std::vector<Geometry*> geometries;
 
 
-    const char* concrete_texture = "../textures/concrete/scuffed_cement_diff_4k.jpg";
+    const char* concrete_texture = "../textures/concrete/gravel_concrete_03_diff_4k.jpg";
 
     Plane * groundPlane = new Plane(glm::vec3(0,0,0), glm::vec3(640, 1, 640), glm::vec3(0,0,0), geometry_programID);
     groundPlane->initialize(concrete_texture);
     geometries.push_back(groundPlane);
 
-    Box * testBox1 = new Box(glm::vec3(0,32,0), glm::vec3(64, 63, 64), glm::vec3(0,45,0), geometry_programID);
+    Box * testBox1 = new Box(glm::vec3(0,32,0), glm::vec3(64, 64, 64), glm::vec3(0,45,0), geometry_programID);
     testBox1->initialize(concrete_texture);
     geometries.push_back(testBox1);
 
@@ -548,40 +815,107 @@ int main(void)
     eye_center.z = viewDistance * sin(viewAzimuth);
 
     glm::mat4 viewMatrix, projectionMatrix;
-    glm::float32 FoV = 90;
-    glm::float32 zNear = 0.1f;
-    glm::float32 zFar = 3000.0f;
-    projectionMatrix = glm::perspective(glm::radians(FoV), 4.0f / 3.0f, zNear, zFar);
+    glm::float32 FoV = 70;
+    glm::float32 zNear = 1.0f;
+    glm::float32 zFar = 1000.0f;
+    projectionMatrix = glm::perspective(glm::radians(FoV), (float) screenWidth / (float) screenHeight, zNear, zFar);
 
+
+    float lastFrameTime = 0.0f;
     do
     {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        float currentFrameTime = glfwGetTime();
+        float deltaTime = currentFrameTime - lastFrameTime;
+        lastFrameTime = currentFrameTime;
+
+
+        glfwPollEvents();
+        camera_update(deltaTime);
 
         viewMatrix = glm::lookAt(eye_center, lookat, up);
         glm::mat4 vp = projectionMatrix * viewMatrix;
 
-        // Render the building
+        //Render to buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        for (Geometry * g:geometries) {
+            g->render(vp);
+        }
+
+        //Render to Screen
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
         for (Geometry * g:geometries) {
             g->render(vp);
         }
 
         // Swap buffers
         glfwSwapBuffers(window);
-        glfwPollEvents();
 
-    } // Check if the ESC key was pressed or the window was closed
+
+    }
     while (!glfwWindowShouldClose(window));
 
     // Clean up
     for (Geometry * g:geometries) {
         g->cleanup();
     }
+    glDeleteFramebuffers(1, &gBuffer);
+    glDeleteTextures(1, &gPosition);
+    glDeleteTextures(1, &gNormal);
+    glDeleteTextures(1, &gAlbedoSpec);
+    glDeleteRenderbuffers(1, &rboDepth);
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
 
     return 0;
 }
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    static bool firstMouse = true;
+
+    // Initialize the lastX and lastY values if this is the first mouse movement
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    // Calculate offset from last mouse position
+    float xOffset = xpos - lastX;
+    float yOffset = lastY - ypos; // Reversed since y-coordinates range from bottom to top
+    lastX = xpos;
+    lastY = ypos;
+
+    // Apply sensitivity to the offsets
+    xOffset *= mouseSensitivity;
+    yOffset *= mouseSensitivity;
+
+    // Update yaw and pitch
+    yaw += xOffset;
+    pitch += yOffset;
+
+    // Constrain pitch to prevent flipping
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    // Calculate the new `lookat` direction
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+    lookat = glm::normalize(direction) + eye_center; // Update `lookat` based on camera position
+}
+
+
 
 // Is called whenever a key is pressed/released via GLFW
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode)
@@ -596,31 +930,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         std::cout << "Reset." << std::endl;
     }
 
-    if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    {
-        viewPolar -= 0.1f;
-        eye_center.y = viewDistance * cos(viewPolar);
-    }
 
-    if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    {
-        viewPolar += 0.1f;
-        eye_center.y = viewDistance * cos(viewPolar);
-    }
-
-    if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    {
-        viewAzimuth -= 0.1f;
-        eye_center.x = viewDistance * cos(viewAzimuth);
-        eye_center.z = viewDistance * sin(viewAzimuth);
-    }
-
-    if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    {
-        viewAzimuth += 0.1f;
-        eye_center.x = viewDistance * cos(viewAzimuth);
-        eye_center.z = viewDistance * sin(viewAzimuth);
-    }
 
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
