@@ -1,19 +1,21 @@
 #version 330 core
 
-in vec3 fragColor;
-in vec2 fragUV;
+in vec4 fragColor;
 in vec3 fragNormal;
+in vec2 fragUV;
 in vec3 fragPosition;
 
-uniform sampler2D textureSampler;
+layout (location = 0) out vec4 outputColour;
+layout (location = 1) out vec3 worldPosition;
+layout (location = 2) out vec3 frag_norm_vec;
 
-out vec4 gPosition;  // World position output
-out vec4 gNormal;    // Normal output
-out vec4 gAlbedo;    // Color output
+uniform sampler2D myTexture;
 
-void main() {
-	// Pass the position, normal, and albedo to the G-buffer
-	gPosition = vec4(fragPosition, 1.0);  // World space position
-	gNormal = vec4(normalize(fragNormal), 1.0);  // Normal
-	gAlbedo = vec4(fragColor, 1.0);
+void main()
+{
+	vec4 texel = vec4(texture(myTexture, fragUV).rgb, 1.0);
+	vec4 colouredTexture = texel * fragColor;
+	outputColour = vec4(colouredTexture.rgb, 1.0);
+	frag_norm_vec = normalize(fragNormal);
+	worldPosition = fragPosition;
 }

@@ -7,11 +7,15 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 
 #include <vector>
 #include <iostream>
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <GL/gl.h>
 
 static GLFWwindow *window;
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
@@ -39,7 +43,7 @@ float lastX, lastY;
 const glm::vec3 wave500(0.0f, 255.0f, 146.0f);
 const glm::vec3 wave600(255.0f, 190.0f, 0.0f);
 const glm::vec3 wave700(205.0f, 0.0f, 0.0f);
-static glm::vec3 lightIntensity = 5.0f * (8.0f * wave500 + 15.6f * wave600 + 18.4f * wave700);
+static glm::vec3 lightIntensity = 1.0f * ((8.0f * wave500) + (15.6f * wave600) + (18.4f * wave700));
 static glm::vec3 lightPosition(-275.0f, 500.0f, -275.0f);
 
 // Shadow mapping
@@ -47,6 +51,115 @@ static glm::vec3 lightUp(0, 0, 1);
 static int shadowMapWidth = 0;
 static int shadowMapHeight = 0;
 
+
+void saveGBufferTextures(GLuint gBuffer, GLuint gColour, GLuint gPosition, GLuint gNormal, GLuint rboDepth, int width, int height) {
+    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+
+    // Allocate space for texture data
+    unsigned char* colourData = new unsigned char[width * height * 4]; // RGBA
+    float* positionData = new float[width * height * 3]; // XYZ as floats
+    float* normalData = new float[width * height * 3]; // XYZ as floats
+    unsigned char* depthData = new unsigned char[width * height]; // Depth as grayscale (0-255)
+
+    // Get colour texture data
+    glBindTexture(GL_TEXTURE_2D, gColour);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, colourData);
+
+
+    // Get position texture data
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, positionData);
+
+    // Get normal texture data
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, normalData);
+
+    // Get depth texture data (renderbuffer)
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
+    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depthData);
+
+    // Save colour as PNG
+    stbi_write_png("gBuffer_colour.png", width, height, 4, colourData, width * 4);
+
+    // Save position as PNG (use normalized values for RGBA)
+    unsigned char* positionNormalized = new unsigned char[width * height * 3];
+    for (int i = 0; i < width * height; ++i) {
+        positionNormalized[i * 3] = (unsigned char)(std::min(1.0f, positionData[i * 3]) * 255);     // Red (X)
+        positionNormalized[i * 3 + 1] = (unsigned char)(std::min(1.0f, positionData[i * 3 + 1]) * 255); // Green (Y)
+        positionNormalized[i * 3 + 2] = (unsigned char)(std::min(1.0f, positionData[i * 3 + 2]) * 255); // Blue (Z)
+    }
+    stbi_write_png("gBuffer_position.png", width, height, 3, positionNormalized, width * 3);
+
+    // Save normal as PNG (use normalized values for RGBA)
+    unsigned char* normalNormalized = new unsigned char[width * height * 3];
+    for (int i = 0; i < width * height; ++i) {
+        normalNormalized[i * 3] = (unsigned char)((normalData[i * 3] + 1.0f) * 0.5f * 255);     // Red (X)
+        normalNormalized[i * 3 + 1] = (unsigned char)((normalData[i * 3 + 1] + 1.0f) * 0.5f * 255); // Green (Y)
+        normalNormalized[i * 3 + 2] = (unsigned char)((normalData[i * 3 + 2] + 1.0f) * 0.5f * 255); // Blue (Z)
+    }
+    stbi_write_png("gBuffer_normal.png", width, height, 3, normalNormalized, width * 3);
+
+    // Save depth as PNG (normalize to 0-255 range)
+    unsigned char* depthNormalized = new unsigned char[width * height];
+    for (int i = 0; i < width * height; ++i) {
+        depthNormalized[i] = (unsigned char)(depthData[i] * 255); // Depth range (0-1) to (0-255)
+    }
+    stbi_write_png("gBuffer_depth.png", width, height, 1, depthNormalized, width);
+
+    // Clean up
+    delete[] colourData;
+    delete[] positionData;
+    delete[] normalData;
+    delete[] depthData;
+    delete[] positionNormalized;
+    delete[] normalNormalized;
+    delete[] depthNormalized;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind framebuffer
+}
+
+static void saveDepthTexture(GLuint fbo, std::string filename) {
+    int width = shadowMapWidth;
+    int height = shadowMapHeight;
+    if (shadowMapWidth == 0 || shadowMapHeight == 0) {
+        width = 1920;
+        height = 1080;
+    }
+    int channels = 3;
+
+    std::vector<float> depth(width * height);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glReadBuffer(GL_DEPTH_COMPONENT);
+    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data());
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    std::vector<unsigned char> img(width * height * 3);
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            //Invert the row we're looking at so image is right way up
+
+            float depthValue = depth[j + ((height - 1 - i) * width)];
+
+            // Invert depth for better contrast (depths closer to 1 are stretched)
+            //invert, sqaureroot, invert again
+            float scaledDepth = 1.0 - pow((1.0f - depthValue), 0.5);
+
+
+
+            unsigned char intensity = static_cast<unsigned char>(scaledDepth * 255);
+
+            img[3 * (j + (i * width))] = intensity;
+            img[3 * (j + (i * width)) + 1] = intensity;
+            img[3 * (j + (i * width)) + 2] = intensity;
+        }
+
+    }
+
+    int rc = stbi_write_png(filename.c_str(), width, height, channels, img.data(), width * channels);
+    std::cout << "rc=" << rc << std::endl;
+}
 
 static GLuint LoadTextureTileBox(const char *texture_file_path) {
     int w, h, channels;
@@ -157,12 +270,15 @@ glm::mat4 computeModelMatrix(const glm::vec3& position, const glm::vec3& rotatio
 
 
 class Light {
+public:
     glm::vec3 position;
-    glm::vec3 Intensity;
+    glm::vec3 colour;
+    float intensity;
 
-    Light(    glm::vec3 position, glm::vec3 Intensity){
+    Light(glm::vec3 position, glm::vec3 colour, float intensity){
         this->position = position;
-        this->Intensity = Intensity;
+        this->colour = colour;
+        this->intensity = intensity;
     }
 
 };
@@ -282,6 +398,10 @@ public:
         glGenBuffers(1, &indexBufferID);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_data), index_buffer_data, GL_STATIC_DRAW);
+
+        glGenBuffers(1, &normalBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(normal_buffer_data), normal_buffer_data, GL_STATIC_DRAW);
 
         // Create and compile our GLSL program from the shaders
         /*
@@ -650,6 +770,141 @@ public:
     }
 };
 
+class DeferredShader {
+public:
+    // Vertex buffer data for a fullscreen quad
+    GLfloat vertex_buffer_data[16] = {
+            -1.0f, -1.0f,  0.0f, 0.0f,
+            1.0f, -1.0f,  1.0f, 0.0f,
+            -1.0f,  1.0f,  0.0f, 1.0f,
+            1.0f,  1.0f,  1.0f, 1.0f,
+    };
+
+    GLuint index_buffer_data[6] = {
+            0, 1, 2,
+            2, 1, 3,
+    };
+
+    GLuint vertexArrayID;
+    GLuint vertexBufferID;
+    GLuint indexBufferID;
+
+    GLuint programID;
+    GLuint gPositionID;
+    GLuint gNormalID;
+    GLuint gAlbedoSpecID;
+    GLuint lightPositionID;
+    GLuint lightColorID;
+    GLuint lightIntensityID;
+
+    DeferredShader(GLuint programID) {
+        this->programID = programID;
+    }
+
+    void initialize() {
+
+        // Generate and bind the vertex array object
+        glGenVertexArrays(1, &vertexArrayID);
+        glBindVertexArray(vertexArrayID);
+
+        // Generate and bind the vertex buffer object
+        glGenBuffers(1, &vertexBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_buffer_data), vertex_buffer_data, GL_STATIC_DRAW);
+
+        // Generate and bind the index buffer object
+        glGenBuffers(1, &indexBufferID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_buffer_data), index_buffer_data, GL_STATIC_DRAW);
+
+        // Get uniform locations for G-buffer textures
+        gPositionID = glGetUniformLocation(programID, "gPosition");
+        gNormalID = glGetUniformLocation(programID, "gNormal");
+        gAlbedoSpecID = glGetUniformLocation(programID, "gAlbedoSpec");
+
+        // Get uniform locations for light properties
+        lightPositionID = glGetUniformLocation(programID, "lightPosition");
+        lightIntensityID = glGetUniformLocation(programID, "lightIntensity");
+        lightColorID = glGetUniformLocation(programID, "lightColour");
+    }
+
+    void render(GLuint gBuffer, glm::vec3 lightPosition, glm::vec3 lightColour, float lightIntensity, GLuint gColour, GLuint gPosition, GLuint gNormal) {
+        // Use the shader program
+        glUseProgram(programID);
+
+
+
+        // Bind G-buffer textures to texture units
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, gColour);
+        glUniform1i(gAlbedoSpecID, 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, gPosition);
+        glUniform1i(gPositionID, 1);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, gNormal);
+        glUniform1i(gNormalID, 2);
+
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
+            // Get the texture dimensions (make sure you know the width and height of gNormal)
+            int width, height;
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+
+            // Allocate memory to store the texture data
+            float* normalData = new float[width * height * 3]; // Assuming RGB format (3 floats per pixel)
+
+            // Read texture data from GPU
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, normalData);
+
+            // Print the first 30 normal values
+            std::cout << "First 30 normal values (RGB):" << std::endl;
+            for (int i = 0; i < 30 && i < width * height; ++i) {
+                float r = normalData[i * 3];
+                float g = normalData[i * 3 + 1];
+                float b = normalData[i * 3 + 2];
+                std::cout << "Normal[" << i << "]: (" << r << ", " << g << ", " << b << ")" << std::endl;
+            }
+
+            // Clean up
+            delete[] normalData;
+        }
+
+        // Set light properties
+        glUniform3fv(lightPositionID, 1, &lightPosition[0]);
+        glUniform3fv(lightColorID, 1, &lightColour[0]);
+        glUniform1f(lightIntensityID, lightIntensity);
+
+        // Bind the vertex array and set up vertex attributes
+        glBindVertexArray(vertexArrayID);
+
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)0);
+
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+
+        // Render the fullscreen quad
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+    }
+
+    void cleanup() {
+        glDeleteBuffers(1, &vertexBufferID);
+        glDeleteBuffers(1, &indexBufferID);
+        glDeleteVertexArrays(1, &vertexArrayID);
+        glDeleteProgram(programID);
+    }
+};
+
+
 void camera_update(float deltaTime){
     glm::vec3 forward = glm::normalize(lookat - eye_center);
     glm::vec3 right = glm::normalize(glm::cross(forward, up));
@@ -679,52 +934,48 @@ void camera_update(float deltaTime){
 
 
 // Function to create and configure the G-buffer
-void createGBuffer(GLuint* gBuffer, GLuint* gPosition, GLuint* gNormal, GLuint* gAlbedoSpec, GLuint* rboDepth, int width, int height) {
-    // Generate and bind the G-buffer
+void createGBuffer(GLuint* gBuffer, GLuint*  gColour, GLuint* gPosition, GLuint* gNormal, GLuint* rboDepth, int width, int height) {
+
+
+    //initialize fbo and corresponding textures;
     glGenFramebuffers(1, gBuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, *gBuffer);
 
-    // Create Position texture
+    glGenTextures(1, gColour);
+    glBindTexture(GL_TEXTURE_2D, *gColour);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *gColour, 0);
+
     glGenTextures(1, gPosition);
     glBindTexture(GL_TEXTURE_2D, *gPosition);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *gPosition, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, *gPosition, 0);
 
-    // Create Normal texture
     glGenTextures(1, gNormal);
     glBindTexture(GL_TEXTURE_2D, *gNormal);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, *gNormal, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, *gNormal, 0);
 
-    // Create Albedo + Specular texture
-    glGenTextures(1, gAlbedoSpec);
-    glBindTexture(GL_TEXTURE_2D, *gAlbedoSpec);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, *gAlbedoSpec, 0);
+    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3, attachments);
 
-    // Create and attach Depth buffer
     glGenRenderbuffers(1, rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, *rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, *rboDepth);
 
-    // Specify the color attachments for the framebuffer
-    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-    glDrawBuffers(3, attachments);
 
-    // Check if framebuffer is complete
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr << "Framebuffer is not complete!" << std::endl;
     }
-
-    // Unbind the framebuffer to prevent accidental modification
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 }
 
 
@@ -780,12 +1031,22 @@ int main(void)
         }
     }
 
+    GLuint lightingPass_shader = 0;
+    if (lightingPass_shader == 0)
+    {
+        lightingPass_shader = LoadShadersFromFile("../shaders/lighting.vert", "../shaders/lighting.frag");
+        if (lightingPass_shader == 0)
+        {
+            std::cerr << "Failed to load shaders." << std::endl;
+        }
+    }
 
-    GLuint gBuffer, gPosition, gNormal, gAlbedoSpec, rboDepth;
+
+    GLuint gBuffer, gColour, gPosition, gNormal, rboDepth;
 
 
     // Create and configure the G-buffer
-    createGBuffer(&gBuffer, &gPosition, &gNormal, &gAlbedoSpec, &rboDepth, screenWidth, screenHeight);
+    createGBuffer(&gBuffer, &gColour, &gPosition, &gNormal, &rboDepth, screenWidth, screenHeight);
 
 
     // Background
@@ -795,8 +1056,10 @@ int main(void)
     glEnable(GL_CULL_FACE);
 
 
-
+    DeferredShader * deferredShader = new DeferredShader(lightingPass_shader);
+    deferredShader->initialize();
     std::vector<Geometry*> geometries;
+    std::vector<Light*> lights;
 
 
     const char* concrete_texture = "../textures/concrete/gravel_concrete_03_diff_4k.jpg";
@@ -808,6 +1071,15 @@ int main(void)
     Box * testBox1 = new Box(glm::vec3(0,32,0), glm::vec3(64, 64, 64), glm::vec3(0,45,0), geometry_programID);
     testBox1->initialize(concrete_texture);
     geometries.push_back(testBox1);
+
+
+    lightPosition = glm::vec3(150, 128, -280);
+    Light * testLight = new Light(lightPosition, glm::vec3(255, 164.65, 38.43), 100.0);
+    lights.push_back(testLight);
+
+    Box * lightBox = new Box(lightPosition, glm::vec3(4, 4, 4), glm::vec3(0,0,0), geometry_programID);
+    lightBox->initialize(concrete_texture);
+    geometries.push_back(lightBox);
 
     // Camera setup
     eye_center.y = viewDistance * cos(viewPolar);
@@ -824,6 +1096,15 @@ int main(void)
     float lastFrameTime = 0.0f;
     do
     {
+        lightBox->position = lightPosition;
+        testLight->position = lightPosition;
+        if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
+            testLight->intensity = testLight->intensity * 1.01;
+        }
+        if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
+            testLight->intensity = testLight->intensity / 1.01;
+        }
+
         float currentFrameTime = glfwGetTime();
         float deltaTime = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
@@ -839,19 +1120,27 @@ int main(void)
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+
         for (Geometry * g:geometries) {
             g->render(vp);
         }
+
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            //For debugging purposed
+            saveGBufferTextures(gBuffer, gColour, gPosition, gNormal, rboDepth, screenWidth, screenHeight);
+            saveDepthTexture(gBuffer, "depther.png");
+        }
+
 
         //Render to Screen
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
+        //Implmenet Lighting Pass
+        deferredShader->render(gBuffer, lightPosition, testLight->colour, testLight->intensity, gColour, gPosition, gNormal);
 
-        for (Geometry * g:geometries) {
-            g->render(vp);
-        }
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -867,7 +1156,7 @@ int main(void)
     glDeleteFramebuffers(1, &gBuffer);
     glDeleteTextures(1, &gPosition);
     glDeleteTextures(1, &gNormal);
-    glDeleteTextures(1, &gAlbedoSpec);
+    glDeleteTextures(1, &gColour);
     glDeleteRenderbuffers(1, &rboDepth);
 
     // Close OpenGL window and terminate GLFW
@@ -930,7 +1219,17 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         std::cout << "Reset." << std::endl;
     }
 
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+        lightPosition.x = lightPosition.x + 5;
 
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+        lightPosition.x = lightPosition.x - 5;
+
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+        lightPosition.z = lightPosition.z + 5;
+
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+        lightPosition.z = lightPosition.z - 5;
 
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);

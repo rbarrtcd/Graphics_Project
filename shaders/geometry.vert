@@ -5,7 +5,7 @@ layout(location = 1) in vec3 vertexColor;
 layout(location = 2) in vec2 vertexUV;
 layout(location = 3) in vec3 vertexNormal;
 
-out vec3 fragColor;
+out vec4 fragColor;
 out vec3 fragNormal;
 out vec2 fragUV;
 out vec3 fragPosition;
@@ -19,8 +19,8 @@ void main() {
     fragPosition = worldPos.xyz;
 
     // Pass the color and normal to the fragment shader
-    fragColor = vertexColor;
-    fragNormal = normalize(mat3(transpose(inverse(modelMatrix))) * vertexNormal);  // World space normal
+    fragColor = vec4(vertexColor, 1.0);
+    fragNormal = vertexNormal;  // World space normal
     fragUV = vertexUV;
 
     // Transform the vertex position to clip space
