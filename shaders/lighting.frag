@@ -27,7 +27,7 @@ float calculateShadow(vec3 fragPos) {
 
     float currentDepth = length(fragToLight)/lightRange;
 
-    float shadow = (currentDepth-0.005f > closestDepth) ? 0.2 : 1.0;
+    float shadow = (currentDepth-0.0005f > closestDepth) ? 0.2 : 1.0;
 
     return shadow;
 }
@@ -49,7 +49,15 @@ void main()
     vec3 diffuse = lambert * (lightIntensity * lightColour) * albedo;
     vec3 toneMapped = diffuse / (1.0 + diffuse);
 
-
+    /* differing code
+    int screenx = int(TexCoord.x * 1920);
+    int screeny = int(TexCoord.y * 1080);
+    if ( screenx % 2 == 0 && screeny % 2 == 0){
+        FragColor = vec4(pow(toneMapped, vec3(1.0 / 2.2)), 1.0) * calculateShadow(fragPos);
+    } else {
+        FragColor = vec4(pow(toneMapped, vec3(1.0 / 2.2)), 1.0);
+    }
+    */
     FragColor = vec4(pow(toneMapped, vec3(1.0 / 2.2)), 1.0) * calculateShadow(fragPos);
     //FragColor = vec4(calculateShadow(fragPos),calculateShadow(fragPos),calculateShadow(fragPos), 1.0);
 }

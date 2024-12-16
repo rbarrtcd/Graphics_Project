@@ -12,11 +12,14 @@ add_subdirectory(external)
 include_directories(
 		external/glfw-3.1.2/include/
 		external/glm-0.9.7.1/
-		external/glad-opengl-3.3/include/
 		external/tinygltf-2.9.3/
+		external/glad-3.3/include/
+		external/assimp/include
 		external/
 		lab4/
 )
+
+
 
 add_executable(lab4_skeleton
 	lab4/lab4_skeleton.cpp
@@ -42,9 +45,12 @@ add_executable(test_scene
 		test_scene.cpp
 		lab4/render/shader.cpp
 		)
+
 target_link_libraries(test_scene
-		${OPENGL_LIBRARY}
 		glfw
+		${OPENGL_LIBRARY}
 		glad
+		assimp
+
 		)
 

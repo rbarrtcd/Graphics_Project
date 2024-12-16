@@ -32,13 +32,9 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "FALSE")
 endif()
 
-# Set default install directory permissions.
-if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/objdump.exe")
-endif()
-
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
+  include("C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/assimp/cmake_install.cmake")
   include("C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/glad-3.3/cmake_install.cmake")
   include("C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/glfw-3.1.2/cmake_install.cmake")
 

@@ -14,14 +14,146 @@
 # EXTERNAL cache entries
 ########################
 
+//Android JNI IOSystem support is active
+ASSIMP_ANDROID_JNIIOSYSTEM:BOOL=OFF
+
+//Path for runtime output files
+ASSIMP_ARCHIVE_OUTPUT_DIRECTORY:STRING=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug
+
+//Enable AddressSanitizer.
+ASSIMP_ASAN:BOOL=OFF
+
+//Path the tool executables are installed to.
+ASSIMP_BIN_INSTALL_DIR:STRING=bin
+
+//default value of all ASSIMP_BUILD_XXX_EXPORTER values
+ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT:BOOL=ON
+
+//default value of all ASSIMP_BUILD_XXX_IMPORTER values
+ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT:BOOL=ON
+
+//describe the current architecture.
+ASSIMP_BUILD_ARCHITECTURE:STRING=
+
+//If the supplementary tools for Assimp are built in addition to
+// the library.
+ASSIMP_BUILD_ASSIMP_TOOLS:BOOL=OFF
+
+//describe the current compiler.
+ASSIMP_BUILD_COMPILER:STRING=
+
+//Build documentation using Doxygen.
+ASSIMP_BUILD_DOCS:BOOL=OFF
+
+//If the Draco libraries are to be built. Primarily for glTF
+ASSIMP_BUILD_DRACO:BOOL=OFF
+
+//Build package as Mac OS X Framework bundle.
+ASSIMP_BUILD_FRAMEWORK:BOOL=OFF
+
+//Enable M3D file export
+ASSIMP_BUILD_M3D_EXPORTER:BOOL=OFF
+
+//Enable M3D file import
+ASSIMP_BUILD_M3D_IMPORTER:BOOL=OFF
+
+//Build the C4D importer, which relies on the non-free Cineware
+// SDK.
+ASSIMP_BUILD_NONFREE_C4D_IMPORTER:BOOL=OFF
+
+//If the official samples are built as well (needs Glut).
+ASSIMP_BUILD_SAMPLES:BOOL=OFF
+
+//Build Assimp as static library
+ASSIMP_BUILD_SHARED_LIBS:BOOL=OFF
+
+//If the test suite for Assimp is built in addition to the library.
+ASSIMP_BUILD_TESTS:BOOL=OFF
+
+//Enable USD file import
+ASSIMP_BUILD_USD_IMPORTER:BOOL=OFF
+
+//Enable verbose USD import debug logging
+ASSIMP_BUILD_USD_VERBOSE_LOGS:BOOL=OFF
+
+//Use ccache to speed up compilation.
+ASSIMP_BUILD_USE_CCACHE:BOOL=ON
+
+//Build your zlib
+ASSIMP_BUILD_ZLIB:BOOL=ON
+
+//Enable this to measure test coverage.
+ASSIMP_COVERALLS:BOOL=OFF
+
+//Set to ON to enable double precision processing
+ASSIMP_DOUBLE_PRECISION:BOOL=OFF
+
+//Enable Hunter package manager support
+ASSIMP_HUNTER_ENABLED:BOOL=OFF
+
+//Don't call git to get the hash.
+ASSIMP_IGNORE_GIT_HASH:BOOL=OFF
+
+//Path the header files are installed to.
+ASSIMP_INCLUDE_INSTALL_DIR:STRING=include
+
+//Inject debug postfix in .a/.so/.dll lib names
+ASSIMP_INJECT_DEBUG_POSTFIX:BOOL=ON
+
+//Disable this if you want to use assimp as a submodule.
+ASSIMP_INSTALL:BOOL=ON
+
+//Create MSVC debug symbol files and add to Install target.
+ASSIMP_INSTALL_PDB:BOOL=ON
+
+//Path for runtime output files
+ASSIMP_LIBRARY_OUTPUT_DIRECTORY:STRING=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug
+
+//Suffix to append to library names
+ASSIMP_LIBRARY_SUFFIX:STRING=
+
+//Path the built library files are installed to.
+ASSIMP_LIB_INSTALL_DIR:STRING=lib
+
+//Disable Assimp's export functionality.
+ASSIMP_NO_EXPORT:BOOL=OFF
+
+//Set to ON to generate CPack configuration files and packaging
+// targets
+ASSIMP_OPT_BUILD_PACKAGES:BOOL=OFF
+
+//the package-specific version used for uploading the sources
+ASSIMP_PACKAGE_VERSION:STRING=0
+
+//Suppress rapidjson warning on MSVC (NOTE: breaks android build)
+ASSIMP_RAPIDJSON_NO_MEMBER_ITERATOR:BOOL=ON
+
+//Path for runtime output files
+ASSIMP_RUNTIME_OUTPUT_DIRECTORY:STRING=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug
+
+//Enable Undefined Behavior sanitizer.
+ASSIMP_UBSAN:BOOL=OFF
+
+//Treat all warnings as errors.
+ASSIMP_WARNINGS_AS_ERRORS:BOOL=OFF
+
+//Value Computed by CMake
+Assimp_BINARY_DIR:STATIC=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/assimp
+
+//Value Computed by CMake
+Assimp_IS_TOP_LEVEL:STATIC=OFF
+
+//Value Computed by CMake
+Assimp_SOURCE_DIR:STATIC=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/external/assimp
+
 //Build shared libraries
 BUILD_SHARED_LIBS:BOOL=ON
 
 //Path to a program.
-CMAKE_ADDR2LINE:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/addr2line.exe
+CCACHE_PATH:FILEPATH=CCACHE_PATH-NOTFOUND
 
 //Path to a program.
-CMAKE_AR:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/ar.exe
+CMAKE_AR:FILEPATH=C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.41.34120/bin/Hostx86/x86/lib.exe
 
 //Choose the type of build, options are: None Debug Release RelWithDebInfo
 // MinSizeRel ...
@@ -31,80 +163,64 @@ CMAKE_BUILD_TYPE:STRING=Debug
 CMAKE_COLOR_DIAGNOSTICS:BOOL=ON
 
 //CXX compiler
-CMAKE_CXX_COMPILER:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/g++.exe
-
-//A wrapper around 'ar' adding the appropriate '--plugin' option
-// for the GCC compiler
-CMAKE_CXX_COMPILER_AR:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/gcc-ar.exe
-
-//A wrapper around 'ranlib' adding the appropriate '--plugin' option
-// for the GCC compiler
-CMAKE_CXX_COMPILER_RANLIB:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/gcc-ranlib.exe
+CMAKE_CXX_COMPILER:FILEPATH=C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.41.34120/bin/Hostx86/x86/cl.exe
 
 //Flags used by the CXX compiler during all build types.
-CMAKE_CXX_FLAGS:STRING=
+CMAKE_CXX_FLAGS:STRING=/DWIN32 /D_WINDOWS /W3 /GR /EHsc
 
 //Flags used by the CXX compiler during DEBUG builds.
-CMAKE_CXX_FLAGS_DEBUG:STRING=-g
+CMAKE_CXX_FLAGS_DEBUG:STRING=/MDd /Zi /Ob0 /Od /RTC1
 
 //Flags used by the CXX compiler during MINSIZEREL builds.
-CMAKE_CXX_FLAGS_MINSIZEREL:STRING=-Os -DNDEBUG
+CMAKE_CXX_FLAGS_MINSIZEREL:STRING=/MD /O1 /Ob1 /DNDEBUG
 
 //Flags used by the CXX compiler during RELEASE builds.
-CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
+CMAKE_CXX_FLAGS_RELEASE:STRING=/MD /O2 /Ob2 /DNDEBUG
 
 //Flags used by the CXX compiler during RELWITHDEBINFO builds.
-CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
+CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=/MD /Zi /O2 /Ob1 /DNDEBUG
 
 //Libraries linked by default with all C++ applications.
-CMAKE_CXX_STANDARD_LIBRARIES:STRING=-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+CMAKE_CXX_STANDARD_LIBRARIES:STRING=kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
 
 //C compiler
-CMAKE_C_COMPILER:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/gcc.exe
-
-//A wrapper around 'ar' adding the appropriate '--plugin' option
-// for the GCC compiler
-CMAKE_C_COMPILER_AR:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/gcc-ar.exe
-
-//A wrapper around 'ranlib' adding the appropriate '--plugin' option
-// for the GCC compiler
-CMAKE_C_COMPILER_RANLIB:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/gcc-ranlib.exe
+CMAKE_C_COMPILER:FILEPATH=C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.41.34120/bin/Hostx86/x86/cl.exe
 
 //Flags used by the C compiler during all build types.
-CMAKE_C_FLAGS:STRING=
+CMAKE_C_FLAGS:STRING=/DWIN32 /D_WINDOWS /W3
 
 //Flags used by the C compiler during DEBUG builds.
-CMAKE_C_FLAGS_DEBUG:STRING=-g
+CMAKE_C_FLAGS_DEBUG:STRING=/MDd /Zi /Ob0 /Od /RTC1
 
 //Flags used by the C compiler during MINSIZEREL builds.
-CMAKE_C_FLAGS_MINSIZEREL:STRING=-Os -DNDEBUG
+CMAKE_C_FLAGS_MINSIZEREL:STRING=/MD /O1 /Ob1 /DNDEBUG
 
 //Flags used by the C compiler during RELEASE builds.
-CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
+CMAKE_C_FLAGS_RELEASE:STRING=/MD /O2 /Ob2 /DNDEBUG
 
 //Flags used by the C compiler during RELWITHDEBINFO builds.
-CMAKE_C_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
+CMAKE_C_FLAGS_RELWITHDEBINFO:STRING=/MD /Zi /O2 /Ob1 /DNDEBUG
 
 //Libraries linked by default with all C applications.
-CMAKE_C_STANDARD_LIBRARIES:STRING=-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+CMAKE_C_STANDARD_LIBRARIES:STRING=kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
 
-//Path to a program.
-CMAKE_DLLTOOL:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/dlltool.exe
+//Debug Postfix for lib, samples and tools
+CMAKE_DEBUG_POSTFIX:STRING=d
 
 //Flags used by the linker during all build types.
-CMAKE_EXE_LINKER_FLAGS:STRING=
+CMAKE_EXE_LINKER_FLAGS:STRING=/machine:X86
 
 //Flags used by the linker during DEBUG builds.
-CMAKE_EXE_LINKER_FLAGS_DEBUG:STRING=
+CMAKE_EXE_LINKER_FLAGS_DEBUG:STRING=/debug /INCREMENTAL
 
 //Flags used by the linker during MINSIZEREL builds.
-CMAKE_EXE_LINKER_FLAGS_MINSIZEREL:STRING=
+CMAKE_EXE_LINKER_FLAGS_MINSIZEREL:STRING=/INCREMENTAL:NO
 
 //Flags used by the linker during RELEASE builds.
-CMAKE_EXE_LINKER_FLAGS_RELEASE:STRING=
+CMAKE_EXE_LINKER_FLAGS_RELEASE:STRING=/INCREMENTAL:NO
 
 //Flags used by the linker during RELWITHDEBINFO builds.
-CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING=
+CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING=/debug /INCREMENTAL
 
 //Enable/Disable output of compile commands during generation.
 CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=
@@ -112,46 +228,37 @@ CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=
 //Value Computed by CMake.
 CMAKE_FIND_PACKAGE_REDIRECTS_DIR:STATIC=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/CMakeFiles/pkgRedirects
 
-//Convert GNU import libraries to MS format (requires Visual Studio)
-CMAKE_GNUtoMS:BOOL=OFF
-
 //Install path prefix, prepended onto install directories.
 CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/lab4
 
 //Path to a program.
-CMAKE_LINKER:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/ld.exe
+CMAKE_LINKER:FILEPATH=C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.41.34120/bin/Hostx86/x86/link.exe
 
 //make program
 CMAKE_MAKE_PROGRAM:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja.exe
 
 //Flags used by the linker during the creation of modules during
 // all build types.
-CMAKE_MODULE_LINKER_FLAGS:STRING=
+CMAKE_MODULE_LINKER_FLAGS:STRING=/machine:X86
 
 //Flags used by the linker during the creation of modules during
 // DEBUG builds.
-CMAKE_MODULE_LINKER_FLAGS_DEBUG:STRING=
+CMAKE_MODULE_LINKER_FLAGS_DEBUG:STRING=/debug /INCREMENTAL
 
 //Flags used by the linker during the creation of modules during
 // MINSIZEREL builds.
-CMAKE_MODULE_LINKER_FLAGS_MINSIZEREL:STRING=
+CMAKE_MODULE_LINKER_FLAGS_MINSIZEREL:STRING=/INCREMENTAL:NO
 
 //Flags used by the linker during the creation of modules during
 // RELEASE builds.
-CMAKE_MODULE_LINKER_FLAGS_RELEASE:STRING=
+CMAKE_MODULE_LINKER_FLAGS_RELEASE:STRING=/INCREMENTAL:NO
 
 //Flags used by the linker during the creation of modules during
 // RELWITHDEBINFO builds.
-CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO:STRING=
+CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO:STRING=/debug /INCREMENTAL
 
 //Path to a program.
-CMAKE_NM:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/nm.exe
-
-//Path to a program.
-CMAKE_OBJCOPY:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/objcopy.exe
-
-//Path to a program.
-CMAKE_OBJDUMP:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/objdump.exe
+CMAKE_MT:FILEPATH=C:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x86/mt.exe
 
 //Value Computed by CMake
 CMAKE_PROJECT_DESCRIPTION:STATIC=
@@ -162,17 +269,29 @@ CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 //Value Computed by CMake
 CMAKE_PROJECT_NAME:STATIC=lab4
 
-//Path to a program.
-CMAKE_RANLIB:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/ranlib.exe
+//Value Computed by CMake
+CMAKE_PROJECT_VERSION:STATIC=5.4.3
+
+//Value Computed by CMake
+CMAKE_PROJECT_VERSION_MAJOR:STATIC=5
+
+//Value Computed by CMake
+CMAKE_PROJECT_VERSION_MINOR:STATIC=4
+
+//Value Computed by CMake
+CMAKE_PROJECT_VERSION_PATCH:STATIC=3
+
+//Value Computed by CMake
+CMAKE_PROJECT_VERSION_TWEAK:STATIC=
 
 //RC compiler
-CMAKE_RC_COMPILER:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/windres.exe
+CMAKE_RC_COMPILER:FILEPATH=C:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x86/rc.exe
 
 //Flags for Windows Resource Compiler during all build types.
-CMAKE_RC_FLAGS:STRING=
+CMAKE_RC_FLAGS:STRING=-DWIN32
 
 //Flags for Windows Resource Compiler during DEBUG builds.
-CMAKE_RC_FLAGS_DEBUG:STRING=
+CMAKE_RC_FLAGS_DEBUG:STRING=-D_DEBUG
 
 //Flags for Windows Resource Compiler during MINSIZEREL builds.
 CMAKE_RC_FLAGS_MINSIZEREL:STRING=
@@ -183,28 +302,25 @@ CMAKE_RC_FLAGS_RELEASE:STRING=
 //Flags for Windows Resource Compiler during RELWITHDEBINFO builds.
 CMAKE_RC_FLAGS_RELWITHDEBINFO:STRING=
 
-//Path to a program.
-CMAKE_READELF:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/readelf.exe
-
 //Flags used by the linker during the creation of shared libraries
 // during all build types.
-CMAKE_SHARED_LINKER_FLAGS:STRING=
+CMAKE_SHARED_LINKER_FLAGS:STRING=/machine:X86
 
 //Flags used by the linker during the creation of shared libraries
 // during DEBUG builds.
-CMAKE_SHARED_LINKER_FLAGS_DEBUG:STRING=
+CMAKE_SHARED_LINKER_FLAGS_DEBUG:STRING=/debug /INCREMENTAL
 
 //Flags used by the linker during the creation of shared libraries
 // during MINSIZEREL builds.
-CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL:STRING=
+CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL:STRING=/INCREMENTAL:NO
 
 //Flags used by the linker during the creation of shared libraries
 // during RELEASE builds.
-CMAKE_SHARED_LINKER_FLAGS_RELEASE:STRING=
+CMAKE_SHARED_LINKER_FLAGS_RELEASE:STRING=/INCREMENTAL:NO
 
 //Flags used by the linker during the creation of shared libraries
 // during RELWITHDEBINFO builds.
-CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO:STRING=
+CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO:STRING=/debug /INCREMENTAL
 
 //If set, runtime paths are not added when installing shared libraries,
 // but are added when building.
@@ -215,7 +331,7 @@ CMAKE_SKIP_RPATH:BOOL=NO
 
 //Flags used by the linker during the creation of static libraries
 // during all build types.
-CMAKE_STATIC_LINKER_FLAGS:STRING=
+CMAKE_STATIC_LINKER_FLAGS:STRING=/machine:X86
 
 //Flags used by the linker during the creation of static libraries
 // during DEBUG builds.
@@ -232,9 +348,6 @@ CMAKE_STATIC_LINKER_FLAGS_RELEASE:STRING=
 //Flags used by the linker during the creation of static libraries
 // during RELWITHDEBINFO builds.
 CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO:STRING=
-
-//Path to a program.
-CMAKE_STRIP:FILEPATH=C:/Program Files/JetBrains/CLion 2022.3/bin/mingw/bin/strip.exe
 
 //If this value is on, makefiles will be generated without the
 // .SILENT directive, and all commands will be echoed to the console
@@ -275,6 +388,9 @@ GLFW_USE_EGL:BOOL=OFF
 //Force use of high-performance GPU on hybrid systems
 GLFW_USE_HYBRID_HPG:BOOL=OFF
 
+//the suffix for the assimp windows library
+LIBRARY_SUFFIX:STRING=-vc143-mt
+
 //Takes an empty string or 64. Directory where lib will be installed:
 // lib or lib64
 LIB_SUFFIX:STRING=
@@ -284,6 +400,12 @@ OPENGL_gl_LIBRARY:STRING=opengl32
 
 //GLU library for win32
 OPENGL_glu_LIBRARY:STRING=glu32
+
+//Use MSVC runtime library DLL
+USE_MSVC_RUNTIME_LIBRARY_DLL:BOOL=ON
+
+//Link against the static runtime libraries.
+USE_STATIC_CRT:BOOL=OFF
 
 //Value Computed by CMake
 glad_BINARY_DIR:STATIC=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/glad-3.3
@@ -306,13 +428,28 @@ lab4_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 lab4_SOURCE_DIR:STATIC=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project
 
+//Value Computed by CMake
+zlib_BINARY_DIR:STATIC=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/assimp/contrib/zlib
+
+//Value Computed by CMake
+zlib_IS_TOP_LEVEL:STATIC=OFF
+
+//Value Computed by CMake
+zlib_SOURCE_DIR:STATIC=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/external/assimp/contrib/zlib
+
 
 ########################
 # INTERNAL cache entries
 ########################
 
-//ADVANCED property for variable: CMAKE_ADDR2LINE
-CMAKE_ADDR2LINE-ADVANCED:INTERNAL=1
+//Enable building amd64 assembly implementation
+AMD64:INTERNAL=FALSE
+//Enable building i686 assembly implementation
+ASM686:INTERNAL=FALSE
+//ADVANCED property for variable: ASSIMP_BUILD_ARCHITECTURE
+ASSIMP_BUILD_ARCHITECTURE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: ASSIMP_BUILD_COMPILER
+ASSIMP_BUILD_COMPILER-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_AR
 CMAKE_AR-ADVANCED:INTERNAL=1
 //This is the directory where this CMakeCache.txt was created
@@ -331,10 +468,6 @@ CMAKE_CPACK_COMMAND:INTERNAL=C:/Program Files/JetBrains/CLion 2022.3/bin/cmake/w
 CMAKE_CTEST_COMMAND:INTERNAL=C:/Program Files/JetBrains/CLion 2022.3/bin/cmake/win/bin/ctest.exe
 //ADVANCED property for variable: CMAKE_CXX_COMPILER
 CMAKE_CXX_COMPILER-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_CXX_COMPILER_AR
-CMAKE_CXX_COMPILER_AR-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_CXX_COMPILER_RANLIB
-CMAKE_CXX_COMPILER_RANLIB-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_CXX_FLAGS
 CMAKE_CXX_FLAGS-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_CXX_FLAGS_DEBUG
@@ -349,10 +482,6 @@ CMAKE_CXX_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 CMAKE_CXX_STANDARD_LIBRARIES-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_C_COMPILER
 CMAKE_C_COMPILER-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_C_COMPILER_AR
-CMAKE_C_COMPILER_AR-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_C_COMPILER_RANLIB
-CMAKE_C_COMPILER_RANLIB-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_C_FLAGS
 CMAKE_C_FLAGS-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_C_FLAGS_DEBUG
@@ -365,8 +494,6 @@ CMAKE_C_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 CMAKE_C_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_C_STANDARD_LIBRARIES
 CMAKE_C_STANDARD_LIBRARIES-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_DLLTOOL
-CMAKE_DLLTOOL-ADVANCED:INTERNAL=1
 //Executable file format
 CMAKE_EXECUTABLE_FORMAT:INTERNAL=Unknown
 //ADVANCED property for variable: CMAKE_EXE_LINKER_FLAGS
@@ -392,7 +519,11 @@ CMAKE_GENERATOR_PLATFORM:INTERNAL=
 //Name of generator toolset.
 CMAKE_GENERATOR_TOOLSET:INTERNAL=
 //Test CMAKE_HAVE_LIBC_PTHREAD
-CMAKE_HAVE_LIBC_PTHREAD:INTERNAL=1
+CMAKE_HAVE_LIBC_PTHREAD:INTERNAL=
+//Have library pthreads
+CMAKE_HAVE_PTHREADS_CREATE:INTERNAL=
+//Have library pthread
+CMAKE_HAVE_PTHREAD_CREATE:INTERNAL=
 //Source directory with the top level CMakeLists.txt file for this
 // project
 CMAKE_HOME_DIRECTORY:INTERNAL=C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project
@@ -408,18 +539,14 @@ CMAKE_MODULE_LINKER_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
 CMAKE_MODULE_LINKER_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO
 CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_NM
-CMAKE_NM-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_MT
+CMAKE_MT-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=5
-//ADVANCED property for variable: CMAKE_OBJCOPY
-CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_OBJDUMP
-CMAKE_OBJDUMP-ADVANCED:INTERNAL=1
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=8
 //Platform information initialized
 CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_RANLIB
-CMAKE_RANLIB-ADVANCED:INTERNAL=1
+//noop for ranlib
+CMAKE_RANLIB:INTERNAL=:
 //ADVANCED property for variable: CMAKE_RC_COMPILER
 CMAKE_RC_COMPILER-ADVANCED:INTERNAL=1
 CMAKE_RC_COMPILER_WORKS:INTERNAL=1
@@ -433,8 +560,6 @@ CMAKE_RC_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
 CMAKE_RC_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_RC_FLAGS_RELWITHDEBINFO
 CMAKE_RC_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_READELF
-CMAKE_READELF-ADVANCED:INTERNAL=1
 //Path to CMake installation.
 CMAKE_ROOT:INTERNAL=C:/Program Files/JetBrains/CLion 2022.3/bin/cmake/win/share/cmake-3.24
 //ADVANCED property for variable: CMAKE_SHARED_LINKER_FLAGS
@@ -461,24 +586,28 @@ CMAKE_STATIC_LINKER_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
 CMAKE_STATIC_LINKER_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO
 CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_STRIP
-CMAKE_STRIP-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding OpenGL
 FIND_PACKAGE_MESSAGE_DETAILS_OpenGL:INTERNAL=[opengl32][c ][v()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
+//Have function fseeko
+HAVE_FSEEKO:INTERNAL=
+//Result of TRY_COMPILE
+HAVE_OFF64_T:INTERNAL=FALSE
+//Have include stddef.h
+HAVE_STDDEF_H:INTERNAL=1
+//Have include stdint.h
+HAVE_STDINT_H:INTERNAL=1
+//Have include sys/types.h
+HAVE_SYS_TYPES_H:INTERNAL=1
+//CHECK_TYPE_SIZE: off64_t unknown
+OFF64_T:INTERNAL=
 //ADVANCED property for variable: OPENGL_gl_LIBRARY
 OPENGL_gl_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: OPENGL_glu_LIBRARY
 OPENGL_glu_LIBRARY-ADVANCED:INTERNAL=1
-//linker supports push/pop state
-_CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
-//Test _GLFW_HAS_64ASLR
-_GLFW_HAS_64ASLR:INTERNAL=1
-//Test _GLFW_HAS_ASLR
-_GLFW_HAS_ASLR:INTERNAL=1
-//Test _GLFW_HAS_DEP
-_GLFW_HAS_DEP:INTERNAL=1
+//Have include unistd.h
+Z_HAVE_UNISTD_H:INTERNAL=
 
