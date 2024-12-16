@@ -515,3 +515,51 @@ Run Build Command(s):C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja
 
 Source file was:
 int main(void) { return 0; }
+Determining if the include file sys/types.h exists passed with the following output:
+Change Dir: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja.exe cmTC_1b5d2 && [1/2] Building C object CMakeFiles/cmTC_1b5d2.dir/CheckIncludeFile.c.obj
+[2/2] Linking C executable cmTC_1b5d2.exe
+
+
+
+Determining if the include file stdint.h exists passed with the following output:
+Change Dir: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja.exe cmTC_cae87 && [1/2] Building C object CMakeFiles/cmTC_cae87.dir/CheckIncludeFile.c.obj
+[2/2] Linking C executable cmTC_cae87.exe
+
+
+
+Determining if the include file stddef.h exists passed with the following output:
+Change Dir: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja.exe cmTC_b2758 && [1/2] Building C object CMakeFiles/cmTC_b2758.dir/CheckIncludeFile.c.obj
+[2/2] Linking C executable cmTC_b2758.exe
+
+
+
+Determining size of off64_t passed with the following output:
+Change Dir: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja.exe cmTC_deaee && [1/2] Building C object CMakeFiles/cmTC_deaee.dir/OFF64_T.c.obj
+[2/2] Linking C executable cmTC_deaee.exe
+
+
+
+Determining if the function fseeko exists passed with the following output:
+Change Dir: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja.exe cmTC_573bd && [1/2] Building C object CMakeFiles/cmTC_573bd.dir/CheckFunctionExists.c.obj
+[2/2] Linking C executable cmTC_573bd.exe
+
+
+
+Determining if the include file unistd.h exists passed with the following output:
+Change Dir: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files/JetBrains/CLion 2022.3/bin/ninja/win/ninja.exe cmTC_687d9 && [1/2] Building C object CMakeFiles/cmTC_687d9.dir/CheckIncludeFile.c.obj
+[2/2] Linking C executable cmTC_687d9.exe
+
+
+

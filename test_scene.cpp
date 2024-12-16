@@ -17,6 +17,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <GL/gl.h>
+#include <thread>
 
 static GLFWwindow *window;
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
@@ -188,84 +189,69 @@ static void saveDepthTexture(GLuint fbo, std::string filename) {
     std::cout << "rc=" << rc << std::endl;
 }
 
-static void saveCubeMapDepthTexture(GLuint fbo, std::string filename) {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    // Get the depth attachment type
-    GLint attachmentType;
-    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &attachmentType);
 
-    if (attachmentType != GL_TEXTURE) {
-        std::cerr << "Depth attachment is not a texture. Cannot save cube map." << std::endl;
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return;
-    }
 
-    // Query the cube map texture ID
-    GLint textureID;
-    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &textureID);
 
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+void saveDepthCubemapToImage(GLuint depthCubemap, const std::string& fileName) {
+    GLint prevFramebuffer;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFramebuffer);
 
-    // Query the dimensions of a single face
-    int width = 0, height = 0;
+    GLuint readFBO;
+    glGenFramebuffers(1, &readFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, readFBO);
+
+    int width = 0;
+    int height = 0;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+
     glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &width);
     glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
 
-    if (width == 0 || height == 0) {
-        std::cerr << "Failed to retrieve cube map face dimensions." << std::endl;
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        return;
+    std::vector<float> depthData(width * height * 6);
+
+    GLenum cubeMapFaces[6] = {
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+            GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+            GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+            GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+            GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+            GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+    };
+
+    for (int face = 0; face < 6; ++face) {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubeMapFaces[face], depthCubemap, 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            std::cerr << "Framebuffer is not complete!" << std::endl;
+            glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer);
+            glDeleteFramebuffers(1, &readFBO);
+            return;
+        }
+        glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, &depthData[width * height * face]);
     }
 
-    // Allocate space for all six faces
-    std::vector<float> faceDepth(width * height);
-    std::vector<unsigned char> img(width * height * 3 * 6); // Six faces, RGB format
+    glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer);
+    glDeleteFramebuffers(1, &readFBO);
 
-    // Read each cube map face
+    std::vector<unsigned char> imageData(width * height * 6);
+    for (int i = 0; i < width * height * 6; ++i) {
+        imageData[i] = static_cast<unsigned char>(depthData[i] * 255.0f);
+    }
+
+    std::vector<unsigned char> finalImage(width * 3 * height * 2);
     for (int face = 0; face < 6; ++face) {
-        GLenum faceEnum = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
-
-        // Bind the face and read depth data
-        glGetTexImage(faceEnum, 0, GL_DEPTH_COMPONENT, GL_FLOAT, faceDepth.data());
-
-        // Copy the depth data into the corresponding section of the output image
-        int offsetX = (face % 3) * width; // Column offset in the 3x2 grid
-        int offsetY = (face / 3) * height; // Row offset in the 3x2 grid
-
-        for (int i = 0; i < height; ++i) {
-            for (int j = 0; j < width; ++j) {
-                // Flip rows for correct orientation
-                float depthValue = faceDepth[j + (height - 1 - i) * width];
-
-                // Normalize and invert depth for better contrast
-                float scaledDepth = 1.0f - pow(1.0f - depthValue, 0.5f);
-                unsigned char intensity = static_cast<unsigned char>(scaledDepth * 255);
-
-                // Calculate pixel position in the final image
-                int imgX = offsetX + j;
-                int imgY = offsetY + i;
-                int imgIdx = 3 * (imgX + imgY * width * 3); // Full image width is 3 * single face width
-
-                img[imgIdx] = intensity;
-                img[imgIdx + 1] = intensity;
-                img[imgIdx + 2] = intensity;
+        int xOffset = (face % 3) * width;
+        int yOffset = (face / 3) * height;
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                finalImage[(yOffset + y) * (width * 3) + xOffset + x] = imageData[face * width * height + y * width + x];
             }
         }
     }
 
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Save the final image
-    int rc = stbi_write_png(filename.c_str(), width * 3, height * 2, 3, img.data(), width * 3 * 3);
-    if (rc) {
-        std::cout << "Cube map depth texture saved to " << filename << std::endl;
-    } else {
-        std::cerr << "Failed to save cube map depth texture to " << filename << std::endl;
-    }
+    stbi_write_png(fileName.c_str(), width * 3, height * 2, 1, finalImage.data(), width * 3);
 }
+
 
 
 static GLuint LoadTextureTileBox(const char *texture_file_path) {
@@ -685,7 +671,8 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices"), 6, GL_FALSE, &light.VPmatrices[0][0][0]);
 
-
+        glUniform3fv(glGetUniformLocation(lightShader, "lightPos"), 1, &light.position[0]);
+        glUniform1f(glGetUniformLocation(lightShader, "farPlane"), light.lightRange);
 
         // Draw the box
         glDrawElements(
@@ -697,7 +684,6 @@ public:
 
         glDisableVertexAttribArray(0);
     }
-
     void cleanup() {
         glDeleteBuffers(1, &vertexBufferID);
         glDeleteBuffers(1, &colorBufferID);
@@ -994,12 +980,7 @@ public:
 
         glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
         glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices[0]"), 1, GL_FALSE, glm::value_ptr(light.VPmatrices[0]));
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices[1]"), 1, GL_FALSE, glm::value_ptr(light.VPmatrices[1]));
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices[2]"), 1, GL_FALSE, glm::value_ptr(light.VPmatrices[2]));
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices[3]"), 1, GL_FALSE, glm::value_ptr(light.VPmatrices[3]));
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices[4]"), 1, GL_FALSE, glm::value_ptr(light.VPmatrices[4]));
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices[5]"), 1, GL_FALSE, glm::value_ptr(light.VPmatrices[5]));
+        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices"), 6, GL_FALSE, &light.VPmatrices[0][0][0]);
 
         glUniform3fv(glGetUniformLocation(lightShader, "lightPos"), 1, &light.position[0]);
         glUniform1f(glGetUniformLocation(lightShader, "farPlane"), light.lightRange);
@@ -1214,6 +1195,7 @@ void createGBuffer(GLuint* gBuffer, GLuint*  gColour, GLuint* gPosition, GLuint*
 
 }
 
+bool pause = false;
 
 int main(void)
 {
@@ -1318,7 +1300,7 @@ int main(void)
     std::vector<Light*> lights;
 
 
-    const char* concrete_texture = "../textures/concrete/gravel_concrete_03_diff_4k.jpg";
+    const char* concrete_texture = "../assets/textures/concrete/gravel_concrete_03_diff_4k.jpg";
 
     Plane * groundPlane = new Plane(glm::vec3(0,0,0), glm::vec3(640, 1, 640), glm::vec3(0,0,0), geometry_programID);
     groundPlane->initialize(concrete_texture);
@@ -1358,10 +1340,10 @@ int main(void)
 
 
 
-
     float lastFrameTime = 0.0f;
     do
     {
+        glfwPollEvents();
         lightBox->position = lightPosition;
         testLight->position = lightPosition;
         testLight->update();
@@ -1378,7 +1360,7 @@ int main(void)
         lastFrameTime = currentFrameTime;
 
 
-        glfwPollEvents();
+
         camera_update(deltaTime);
 
         viewMatrix = glm::lookAt(eye_center, lookat, up);
@@ -1399,34 +1381,23 @@ int main(void)
         for (Light* l : lights) {
             glBindFramebuffer(GL_FRAMEBUFFER, l->shadowFBO);
             glViewport(0, 0, l->shadowMapSize, l->shadowMapSize);
+            glClear(GL_DEPTH_BUFFER_BIT);
 
-
-            for (int i = 0; i < 6; ++i) {
-                // Attach the appropriate face of the cube map to the framebuffer
-                //glFramebufferTexture2D(
-                //        GL_FRAMEBUFFER,
-                //        GL_DEPTH_ATTACHMENT,
-                //        GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                //        l->shadowCubeMap,
-                //        0
-                //);
-
-                glClear(GL_DEPTH_BUFFER_BIT);
-
-                // Render the scene geometry
-                for (Geometry* g : geometries) {
-                    g->lightRender(shadowMap_shader, *l);
-                }
-
+            // Render the scene geometry
+            for (Geometry *g: geometries) {
+                g->lightRender(shadowMap_shader, *l);
             }
+
 
         }
 
 
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
             //For debugging purposed
-            saveGBufferTextures(gBuffer, gColour, gPosition, gNormal, rboDepth, screenWidth, screenHeight);
-            saveCubeMapDepthTexture(testLight->shadowFBO, "depther.png");
+            //saveCubeMapDepthTexture(testLight->shadowFBO, testLight->shadowCubeMap, "depther.png");
+            saveDepthCubemapToImage(testLight->shadowCubeMap, "light_depth_map.png");
+
+
         }
 
         /**/
@@ -1439,9 +1410,13 @@ int main(void)
         //Implmenet Lighting Pass
         deferredShader->render(gBuffer, *testLight, gColour, gPosition, gNormal);
         glfwSwapBuffers(window);
+        if (pause){
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            pause = false;
+        }
                  /**/
 
-/*
+        /*
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, screenWidth, screenHeight);
@@ -1454,6 +1429,7 @@ int main(void)
 
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(viewNoTranslation));
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+
 
 // Bind the skybox texture to the appropriate texture unit
         glActiveTexture(GL_TEXTURE0);
@@ -1524,10 +1500,8 @@ int main(void)
         glDepthMask(GL_FALSE); // Disable depth writing
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthMask(GL_TRUE);  // Re-enable depth writing
-
-// Swap buffers to display the rendered frame
-        glfwSwapBuffers(window);
 */
+
 
     }
     while (!glfwWindowShouldClose(window));
@@ -1608,8 +1582,9 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
         lightPosition.x = lightPosition.x - 5;
 
-    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
         lightPosition.z = lightPosition.z + 5;
+    }
 
     if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
         lightPosition.z = lightPosition.z - 5;

@@ -71,9 +71,9 @@ build CMakeFiles/lab4_skeleton.dir/lab4/render/shader.cpp.obj: CXX_COMPILER__lab
 #############################################
 # Link the executable lab4_skeleton.exe
 
-build lab4_skeleton.exe: CXX_EXECUTABLE_LINKER__lab4_skeleton_Debug CMakeFiles/lab4_skeleton.dir/lab4/lab4_skeleton.cpp.obj CMakeFiles/lab4_skeleton.dir/lab4/render/shader.cpp.obj | glfw3dll.a libglad.dll.a || glfw3.dll libglad.dll
+build lab4_skeleton.exe: CXX_EXECUTABLE_LINKER__lab4_skeleton_Debug CMakeFiles/lab4_skeleton.dir/lab4/lab4_skeleton.cpp.obj CMakeFiles/lab4_skeleton.dir/lab4/render/shader.cpp.obj | glfw3ddll.a libgladd.dll.a || glfw3d.dll libgladd.dll
   FLAGS = -g
-  LINK_LIBRARIES = -lopengl32  -lglu32  glfw3dll.a  libglad.dll.a  -lopengl32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  LINK_LIBRARIES = -lopengl32  -lglu32  glfw3ddll.a  libgladd.dll.a  -lopengl32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\lab4_skeleton.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
@@ -112,9 +112,9 @@ build CMakeFiles/lab4_character.dir/lab4/render/shader.cpp.obj: CXX_COMPILER__la
 #############################################
 # Link the executable lab4_character.exe
 
-build lab4_character.exe: CXX_EXECUTABLE_LINKER__lab4_character_Debug CMakeFiles/lab4_character.dir/lab4/lab4_character.cpp.obj CMakeFiles/lab4_character.dir/lab4/render/shader.cpp.obj | glfw3dll.a libglad.dll.a || glfw3.dll libglad.dll
+build lab4_character.exe: CXX_EXECUTABLE_LINKER__lab4_character_Debug CMakeFiles/lab4_character.dir/lab4/lab4_character.cpp.obj CMakeFiles/lab4_character.dir/lab4/render/shader.cpp.obj | glfw3ddll.a libgladd.dll.a || glfw3d.dll libgladd.dll
   FLAGS = -g
-  LINK_LIBRARIES = -lopengl32  -lglu32  glfw3dll.a  libglad.dll.a  -lopengl32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  LINK_LIBRARIES = -lopengl32  -lglu32  glfw3ddll.a  libgladd.dll.a  -lopengl32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\lab4_character.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
@@ -153,9 +153,9 @@ build CMakeFiles/test_scene.dir/lab4/render/shader.cpp.obj: CXX_COMPILER__test_s
 #############################################
 # Link the executable test_scene.exe
 
-build test_scene.exe: CXX_EXECUTABLE_LINKER__test_scene_Debug CMakeFiles/test_scene.dir/test_scene.cpp.obj CMakeFiles/test_scene.dir/lab4/render/shader.cpp.obj | glfw3dll.a libglad.dll.a || glfw3.dll libglad.dll
+build test_scene.exe: CXX_EXECUTABLE_LINKER__test_scene_Debug CMakeFiles/test_scene.dir/test_scene.cpp.obj CMakeFiles/test_scene.dir/lab4/render/shader.cpp.obj | glfw3ddll.a libgladd.dll.a || glfw3d.dll libgladd.dll
   FLAGS = -g
-  LINK_LIBRARIES = -lopengl32  -lglu32  glfw3dll.a  libglad.dll.a  -lopengl32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  LINK_LIBRARIES = -lopengl32  -lglu32  glfw3ddll.a  libgladd.dll.a  -lopengl32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\test_scene.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
@@ -242,18 +242,18 @@ build external/glad-3.3/CMakeFiles/glad.dir/src/gl.c.obj: C_COMPILER__glad_Debug
 
 
 #############################################
-# Link the shared library libglad.dll
+# Link the shared library libgladd.dll
 
-build libglad.dll libglad.dll.a: C_SHARED_LIBRARY_LINKER__glad_Debug external/glad-3.3/CMakeFiles/glad.dir/src/gl.c.obj
+build libgladd.dll libgladd.dll.a: C_SHARED_LIBRARY_LINKER__glad_Debug external/glad-3.3/CMakeFiles/glad.dir/src/gl.c.obj
   LANGUAGE_COMPILE_FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = external\glad-3.3\CMakeFiles\glad.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
   RESTAT = 1
-  TARGET_FILE = libglad.dll
-  TARGET_IMPLIB = libglad.dll.a
-  TARGET_PDB = glad.dll.dbg
+  TARGET_FILE = libgladd.dll
+  TARGET_IMPLIB = libgladd.dll.a
+  TARGET_PDB = gladd.dll.dbg
 
 
 #############################################
@@ -422,9 +422,9 @@ build external/glfw-3.1.2/src/CMakeFiles/glfw.dir/wgl_context.c.obj: C_COMPILER_
 
 
 #############################################
-# Link the shared library glfw3.dll
+# Link the shared library glfw3d.dll
 
-build glfw3.dll glfw3dll.a: C_SHARED_LIBRARY_LINKER__glfw_Debug external/glfw-3.1.2/src/CMakeFiles/glfw.dir/context.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/init.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/input.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/monitor.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/window.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_init.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_monitor.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_time.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_tls.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_window.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/winmm_joystick.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/wgl_context.c.obj
+build glfw3d.dll glfw3ddll.a: C_SHARED_LIBRARY_LINKER__glfw_Debug external/glfw-3.1.2/src/CMakeFiles/glfw.dir/context.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/init.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/input.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/monitor.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/window.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_init.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_monitor.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_time.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_tls.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/win32_window.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/winmm_joystick.c.obj external/glfw-3.1.2/src/CMakeFiles/glfw.dir/wgl_context.c.obj
   LANGUAGE_COMPILE_FLAGS = -g
   LINK_FLAGS = -Wl,--high-entropy-va -Wl,--dynamicbase -Wl,--nxcompat
   LINK_LIBRARIES = -lopengl32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
@@ -432,9 +432,9 @@ build glfw3.dll glfw3dll.a: C_SHARED_LIBRARY_LINKER__glfw_Debug external/glfw-3.
   POST_BUILD = cd .
   PRE_LINK = cd .
   RESTAT = 1
-  TARGET_FILE = glfw3.dll
-  TARGET_IMPLIB = glfw3dll.a
-  TARGET_PDB = glfw3.dll.dbg
+  TARGET_FILE = glfw3d.dll
+  TARGET_IMPLIB = glfw3ddll.a
+  TARGET_PDB = glfw3d.dll.dbg
 
 
 #############################################
@@ -462,9 +462,9 @@ build external/glfw-3.1.2/src/rebuild_cache: phony external/glfw-3.1.2/src/CMake
 # =============================================================================
 # Target aliases.
 
-build glad: phony libglad.dll
+build glad: phony libgladd.dll
 
-build glfw: phony glfw3.dll
+build glfw: phony glfw3d.dll
 
 build lab4_character: phony lab4_character.exe
 
@@ -494,7 +494,7 @@ build external/all: phony external/glad-3.3/all external/glfw-3.1.2/all
 #############################################
 # Folder: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/glad-3.3
 
-build external/glad-3.3/all: phony libglad.dll
+build external/glad-3.3/all: phony libgladd.dll
 
 # =============================================================================
 
@@ -508,7 +508,7 @@ build external/glfw-3.1.2/all: phony external/glfw-3.1.2/src/all
 #############################################
 # Folder: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug/external/glfw-3.1.2/src
 
-build external/glfw-3.1.2/src/all: phony glfw3.dll
+build external/glfw-3.1.2/src/all: phony glfw3d.dll
 
 # =============================================================================
 # Unknown Build Time Dependencies.

@@ -27,7 +27,7 @@ float calculateShadow(vec3 fragPos) {
 
     float currentDepth = length(fragToLight)/lightRange;
 
-    float shadow = (currentDepth-0.005f > closestDepth) ? 0.2 : 1.0;
+    float shadow = (currentDepth-0.0005f > closestDepth) ? 0.2 : 1.0;
 
     return shadow;
 }
