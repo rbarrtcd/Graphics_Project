@@ -19,15 +19,17 @@ uniform vec3 viewPos;
 
 
 
-float calculateShadow(vec3 fragPos) {
+float calculateShadow(vec3 fragPos, float theta) {
     vec3 fragToLight =  fragPos - lightPosition ;
-    vec3 inverter = normalize(fragToLight);
+    vec3 norma = normalize(fragToLight);
 
-    float closestDepth = (texture(depthMap, inverter).r);
+    float closestDepth = (texture(depthMap, norma).r);
 
     float currentDepth = length(fragToLight)/lightRange;
-
-    float shadow = (currentDepth-0.0005f > closestDepth) ? 0.2 : 1.0;
+    //Magic equation I made to reduce self shadowing at steep angles
+    //float dynamicBias = 0.0005 + (pow(0.0002, (theta*6)));
+    //float dynamicBias = 0.001;
+    float shadow = (currentDepth-0.0005> closestDepth) ? 0.2 : 1.0;
 
     return shadow;
 }
@@ -58,6 +60,6 @@ void main()
         FragColor = vec4(pow(toneMapped, vec3(1.0 / 2.2)), 1.0);
     }
     */
-    FragColor = vec4(pow(toneMapped, vec3(1.0 / 2.2)), 1.0) * calculateShadow(fragPos);
+    FragColor = vec4(pow(toneMapped, vec3(1.0 / 2.2)), 1.0) * calculateShadow(fragPos, max(dot(normal, lightDir), 0.0f));
     //FragColor = vec4(calculateShadow(fragPos),calculateShadow(fragPos),calculateShadow(fragPos), 1.0);
 }

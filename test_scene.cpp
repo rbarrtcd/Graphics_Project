@@ -4,7 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <render/shader.h>
-
+#include "test_scene.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -22,6 +22,10 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <unordered_map>
+#include <functional>
+#include <iomanip>
+#include <xutility>
 
 static GLFWwindow *window;
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
@@ -53,8 +57,6 @@ static glm::vec3 lightIntensity = 1.0f * ((8.0f * wave500) + (15.6f * wave600) +
 static glm::vec3 lightPosition(-275.0f, 500.0f, -275.0f);
 
 
-
-// Shadow mapping
 
 
 
@@ -491,6 +493,24 @@ protected:
     GLuint programID;
 };
 
+void printMatrix(const glm::mat4& matrix) {
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            std::cout << std::setw(10) << std::fixed << std::setprecision(4) << matrix[row][col] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl; // Separate matrices with a blank line
+}
+
+// Function to print all matrices in a vector
+void printMatrixVector(const std::vector<glm::mat4>& matrices) {
+    for (size_t i = 0; i < matrices.size(); ++i) {
+        std::cout << "Matrix " << i + 1 << ":\n";
+        printMatrix(matrices[i]);
+    }
+}
+
 class Entity {
 public:
     glm::vec3 position;
@@ -517,7 +537,9 @@ public:
     GLuint normalBufferID;
     GLuint uvBufferID;
     GLuint textureID;
-    GLuint programID;
+
+    GLuint staticID;
+    GLuint animatedID;
 
     // Shader variable IDs
     GLuint mvpMatrixID;
@@ -526,11 +548,34 @@ public:
     //static GLuint programID;
     glm::mat4 modelMatrix;
 
-    Entity(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, GLuint programID) {
+
+    GLuint AnimatedmvpMatrixID;
+    GLuint AnimatedmodelMatrixID;
+    GLuint AnimatedvertexArrayID;
+    GLuint AnimatedvertexBufferID;
+    GLuint AnimatedindexBufferID;
+    GLuint AnimatedcolorBufferID;
+    GLuint AnimatednormalBufferID;
+    GLuint AnimateduvBufferID;
+    GLuint jointMatricesID;
+    GLuint boneWeightsID;
+    GLuint boneIndicesID;
+
+    std::vector<Vertex> copiedVertices;
+
+    struct AnimationData animationData;
+    int currentAnimationTrack = -1; // Index of the current animation (-1 if no animation is playing)
+    float animationTime = 0.0f;    // Time tracker for the current animation
+    bool isAnimationPlaying = false; // Indicates if an animation is currently playing
+    bool hasAnimation = false;
+
+    Entity(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, GLuint staticShader, GLuint animatedShader) {
         this->position = position;
         this->scale = scale;
         this->rotation = rotation;
-        this->programID = programID;
+        this->staticID = staticShader;
+        this->animatedID = animatedShader;
+        this->hasAnimation = false;
     }
 
     void loadModelData(const std::vector<GLfloat>& vertices,
@@ -564,9 +609,13 @@ public:
 
         transformNormals(normal_buffer_data, numVertices, computeModelMatrix(position, rotation, scale));
         initializeBuffers();
-        mvpMatrixID = glGetUniformLocation(programID, "MVP");
+        mvpMatrixID = glGetUniformLocation(staticID, "MVP");
+        modelMatrixID = glGetUniformLocation(staticID, "modelMatrix");
 
-        modelMatrixID = glGetUniformLocation(programID, "modelMatrix");
+        AnimatedmvpMatrixID = glGetUniformLocation(animatedID, "MVP");
+        AnimatedmodelMatrixID = glGetUniformLocation(animatedID, "modelMatrix");
+        jointMatricesID = glGetUniformLocation(animatedID, "jointMatrix");
+
     }
 
     void initializeBuffers(){
@@ -596,62 +645,448 @@ public:
         glGenBuffers(1, &normalBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
         glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), normal_buffer_data, GL_STATIC_DRAW);
+
+        //animation
+        glGenVertexArrays(1, &AnimatedvertexArrayID);
+        glBindVertexArray(AnimatedvertexArrayID);
+
+        // Create a vertex buffer object to store the vertex data
+        glGenBuffers(1, &AnimatedvertexBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, AnimatedvertexBufferID);
+        glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), vertex_buffer_data, GL_STATIC_DRAW);
+
+        // Create a vertex buffer object to store the color data
+        glGenBuffers(1, &AnimatedcolorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, AnimatedcolorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), color_buffer_data, GL_STATIC_DRAW);
+
+        // Create a vertex buffer object to store the UV data
+        glGenBuffers(1, &AnimateduvBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, AnimateduvBufferID);
+        glBufferData(GL_ARRAY_BUFFER, numVertices*2*sizeof(GLfloat), uv_buffer_data, GL_STATIC_DRAW);
+
+        // Create an index buffer object to store the index data that defines triangle faces
+        glGenBuffers(1, &AnimatedindexBufferID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, AnimatedindexBufferID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices*sizeof(GLfloat), index_buffer_data, GL_STATIC_DRAW);
+
+        glGenBuffers(1, &AnimatednormalBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, AnimatednormalBufferID);
+        glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), normal_buffer_data, GL_STATIC_DRAW);
+
+        glGenBuffers(1, &boneWeightsID);
+        glBindBuffer(GL_ARRAY_BUFFER, boneWeightsID);
+
+        // Create a vertex buffer object to store the UV data
+        glGenBuffers(1, &boneIndicesID);
+        glBindBuffer(GL_ARRAY_BUFFER, boneIndicesID);
     }
 
     void setTexture(const std::string& texturePath){
         textureID = LoadTextureTileBox(texturePath.c_str());
     }
 
+    void loadAnimationData(const AnimationData animationData) {
+        this->animationData = animationData;
+        for (int i = 0; i < animationData.vertices.size(); ++i) {
+            copiedVertices.push_back(animationData.vertices[i]);
+        }
+        this->hasAnimation = true;
+
+
+    }
+
+    void playAnimation(int track){
+        currentAnimationTrack = track;
+        animationTime = glfwGetTime();
+        isAnimationPlaying = true;
+    }
+
+    glm::mat4 getBoneNodeTransform(const BoneNode& boneNode) {
+        glm::mat4 transform(1.0f);
+
+        // Combine transformations if they exist in the BoneNode
+        if (boneNode.localTransform != glm::mat4(1.0f)){
+            transform = boneNode.localTransform;
+        } else {
+            // Apply translation
+            glm::vec3 translation = glm::vec3(boneNode.offsetMatrix[3]); // Extract translation from offsetMatrix
+            if (translation != glm::vec3(0.0f)) {
+                transform = glm::translate(transform, translation);
+            }
+
+            // Apply rotation (if stored as part of localTransform or in quaternion form, use it)
+            glm::quat rotation = glm::quat_cast(boneNode.offsetMatrix); // Extract rotation from offsetMatrix
+            if (glm::length(rotation) != 0.0f) {
+                transform *= glm::mat4_cast(rotation);
+            }
+
+            // Apply scaling
+            glm::vec3 scale = glm::vec3(
+                    glm::length(glm::vec3(boneNode.offsetMatrix[0])),
+                    glm::length(glm::vec3(boneNode.offsetMatrix[1])),
+                    glm::length(glm::vec3(boneNode.offsetMatrix[2]))
+            );
+            if (scale != glm::vec3(1.0f)) {
+                transform = glm::scale(transform, scale);
+            }
+        }
+
+        return transform;
+    }
+
+    void computeLocalNodeTransform(const AnimationData& animationData,
+                                   int nodeIndex,
+                                   std::vector<glm::mat4>& localTransforms)
+    {
+        const BoneNode& bone = animationData.bones[nodeIndex];
+        localTransforms[nodeIndex] = getBoneNodeTransform(bone);
+    }
+
+    void computeGlobalBoneTransform(
+            const AnimationData& animationData,
+            const std::vector<glm::mat4>& localTransforms,
+            int boneIndex,
+            const glm::mat4& parentTransform,
+            std::vector<glm::mat4>& globalTransforms
+    ) {
+        // Get the current bone
+        const BoneNode& bone = animationData.bones[boneIndex];
+
+        // Calculate the global transformation for this bone
+        glm::mat4 globalTransform = parentTransform * localTransforms[boneIndex];
+
+        // Store the global transformation
+        globalTransforms[boneIndex] = globalTransform;
+
+        // Recursively compute transformations for child bones
+        for (int childIndex : bone.childrenIndices) {
+            computeGlobalBoneTransform(animationData, localTransforms, childIndex, globalTransform, globalTransforms);
+        }
+    }
+
+
+
+    void update(float deltaTime) {
+        if (currentAnimationTrack >= 0 && isAnimationPlaying) {
+            // Advance animation time
+            animationTime += deltaTime;
+
+            std::vector<glm::mat4> nodeTransforms(animationData.bones.size());
+            for (size_t i = 0; i < nodeTransforms.size(); ++i) {
+                nodeTransforms[i] = glm::mat4(1.0);
+            }
+            updateAnimation(animationTime, nodeTransforms);
+            std::vector<glm::mat4> globalTransforms(animationData.bones.size(), glm::mat4(1.0f));
+            computeGlobalBoneTransform(animationData, nodeTransforms, animationData.rootIndex, glm::mat4(1.0f), globalTransforms);
+
+            for (size_t i = 0; i < animationData.bones.size(); ++i) {
+                const BoneNode& bone = animationData.bones[i];
+                const glm::mat4& globalTransform = globalTransforms[i];
+                const glm::mat4& offsetMatrix = glm::transpose(bone.offsetMatrix);
+                //std::cout << "Bone: " << bone.name<< ", index: " << bone.index << "\n";
+                //printMatrix(offsetMatrix);
+                //printMatrix(globalTransform);
+
+                animationData.bones[i].finalTransformation = globalTransform * offsetMatrix;
+                //animationData.bones[i].finalTransformation = globalTransform * offsetMatrix ;
+
+                /*
+                if (i == 44){
+                    //printMatrix(globalTransform);
+                    //printMatrix(offsetMatrix);
+                    int x = 0;
+                    //animationData.bones[i].finalTransformation = globalTransform * offsetMatrix;
+                } else {
+                    animationData.bones[i].finalTransformation = glm::mat4(1.0);
+                }
+                 */
+
+
+
+
+            }
+            int x = 0;
+            /*
+            for (size_t i = 0; i < copiedVertices.size(); ++i) {
+                Vertex& vertex = copiedVertices[i];
+                glm::mat4 skinMat = glm::mat4(0.0f);
+                float boneSum = 0.0f;
+
+                for (int j = 0; j < 4; ++j) {
+                    int boneID = vertex.boneIDs[j];
+                    float boneWeight = vertex.boneWeights[j];
+
+                    if (boneID < 0 || boneWeight <= 0.0f) {
+                        continue; // Skip invalid bones
+                    }
+
+                    //const glm::mat4& finalTransform = glm::transpose(animationData.bones[boneID].finalTransformation);
+                    const glm::mat4& finalTransform = animationData.bones[boneID].finalTransformation;
+                    skinMat += finalTransform * boneWeight;
+                    boneSum += boneWeight;
+
+                    // Debugging output
+                    //std::cout << "Bone: " << animationData.bones[boneID].name << ", Weight: " << boneWeight << "\n";
+                    //printMatrix(finalTransform);
+                }
+
+                // Normalize the skinning matrix
+                if (boneSum > 0.0f) {
+                    skinMat /= boneSum;
+                }
+
+                // Apply the skinning transformation
+                glm::vec4 transformed = skinMat * glm::vec4(vertex.position, 1.0f);
+                glm::vec3 transformedPosition = glm::vec3(transformed);
+
+                // Debug final position
+                //std::cout << "Transformed position: " << transformedPosition.x << ", "
+                //          << transformedPosition.y << ", " << transformedPosition.z << "\n";
+
+                // Update the vertex data
+                animationData.vertices[i].position = transformedPosition;
+            }
+        */
+
+
+
+        }
+    }
+
+    int findKeyframeIndex(const std::vector<float>& times, float animationTime)
+    {
+        int left = 0;
+        int right = times.size() - 1;
+
+        while (left <= right) {
+            int mid = (left + right) / 2;
+
+            if (mid + 1 < times.size() && times[mid] <= animationTime && animationTime < times[mid + 1]) {
+                return mid;
+            }
+            else if (times[mid] > animationTime) {
+                right = mid - 1;
+            }
+            else { // animationTime >= times[mid + 1]
+                left = mid + 1;
+            }
+        }
+
+        // Target not found
+        return times.size() - 2;
+    }
+
+    void updateAnimation(float time, std::vector<glm::mat4> &nodeTransforms) {
+        if (currentAnimationTrack < 0 || currentAnimationTrack >= animationData.animations.size()) {
+            return; // Invalid track, do nothing
+        }
+        const AnimationTrack &animation = animationData.animations[currentAnimationTrack];
+        time = 0.0;
+        // Precompute animation time (looping back when it exceeds duration)
+        const std::vector<float> &keyframeTimes = animation.boneAnims[0].keyframeTimes;
+        if (keyframeTimes.empty()) {
+            return; // No keyframes, do nothing
+        }
+
+        float animationTime = fmod(time, keyframeTimes.back());
+
+        for (const auto &boneNode : animationData.bones) {
+            glm::mat4 localTransform = glm::mat4(1.0f);
+
+            glm::mat4 localTransformPos = glm::mat4(1.0f);
+            glm::mat4 localTransformRot = glm::mat4(1.0f);
+            glm::mat4 localTransformSca = glm::mat4(1.0f);
+
+            // Find corresponding animation track for this bone
+            auto it = std::find_if(animationData.animations[currentAnimationTrack].boneAnims.begin(),
+                                   animationData.animations[currentAnimationTrack].boneAnims.end(),
+                                   [&boneNode](const BoneAnimation &anim) { return anim.name == boneNode.name; });
+
+            if (it != animationData.animations[currentAnimationTrack].boneAnims.end()) {
+                const BoneAnimation &boneAnim = *it;
+                int keyframeIndex = findKeyframeIndex(boneAnim.keyframeTimes, animationTime);
+
+                float t = 0.0f;
+                if (keyframeIndex + 1 < boneAnim.keyframeTimes.size()) {
+                    float t0 = boneAnim.keyframeTimes[keyframeIndex];
+                    float t1 = boneAnim.keyframeTimes[keyframeIndex + 1];
+                    t = (animationTime - t0) / (t1 - t0);
+                }
+                //keyframeIndex = 0;
+                // Interpolate keyframes for this bone
+                const Keyframe &keyframe0 = boneAnim.keyframes[keyframeIndex];
+                const Keyframe &keyframe1 = boneAnim.keyframes[keyframeIndex + 1];
+
+
+
+                glm::vec3 interpolatedPosition = glm::mix(keyframe0.position, keyframe1.position, t);
+                glm::quat interpolatedRotation = glm::slerp(keyframe0.rotation, keyframe1.rotation, t);
+                glm::vec3 interpolatedScale = glm::mix(keyframe0.scale, keyframe1.scale, t);
+                //glm::vec3 interpolatedPosition = keyframe0.position;
+                //glm::quat interpolatedRotation = keyframe0.rotation;
+                //glm::vec3 interpolatedScale = keyframe0.scale;
+                // Construct the local transform matrix
+                localTransformPos = glm::translate(glm::mat4(1.0f), interpolatedPosition);
+                localTransformRot = glm::mat4_cast(interpolatedRotation);
+                localTransformSca = glm::scale(glm::mat4(1.0f), interpolatedScale);
+
+                localTransform = localTransformPos * localTransformRot * localTransformSca;
+                nodeTransforms[boneNode.index] = localTransform;
+            }
+
+
+
+        }
+    }
+
+
 
     void render(glm::mat4 cameraMatrix) {
-        glUseProgram(programID);
+        if (isAnimationPlaying){
+            glUseProgram(animatedID);
 
 
-        modelMatrix = computeModelMatrix(position, rotation, scale);
+            modelMatrix = computeModelMatrix(position, rotation, scale);
 
 
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, colorBufferID);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-        // Enable UV buffer and texture sampler
-        glEnableVertexAttribArray(2);
-        glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glEnableVertexAttribArray(3);
-        glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
 
 
-        // Set model-view-projection matrix
-        glm::mat4 mvp = cameraMatrix * modelMatrix;
-        glUniformMatrix4fv(modelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
-        glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvp[0][0]);
+            glEnableVertexAttribArray(1);
+            glBindBuffer(GL_ARRAY_BUFFER, AnimatedcolorBufferID);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-        // Set textureSampler to use texture unit 0
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glUniform1i(textureSamplerID, 0);
+            // Enable UV buffer and texture sampler
+            glEnableVertexAttribArray(2);
+            glBindBuffer(GL_ARRAY_BUFFER, AnimateduvBufferID);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-        // Draw the box
-        glDrawElements(
-                GL_TRIANGLES,      // mode
-                numIndices,    	// number of indices
-                GL_UNSIGNED_INT,   // type
-                (void*)0           // element array buffer offset
-        );
+            glEnableVertexAttribArray(3);
+            glBindBuffer(GL_ARRAY_BUFFER, AnimatednormalBufferID);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-        glDisableVertexAttribArray(2);
-        glDisableVertexAttribArray(3);
+            std::vector<glm::vec4> boneWeightsData;
+            std::vector<glm::vec4> boneIndicesData;
+            GLfloat * new_vertex_buffer_data = new GLfloat[numVertices*3];
+            int i = 0;
+            for (const auto& vertex : animationData.vertices) {
+                new_vertex_buffer_data[i] = vertex.position.x;
+                new_vertex_buffer_data[i+1] = vertex.position.y;
+                new_vertex_buffer_data[i+2] = vertex.position.z;
+                i+=3;
+                glm::vec4 floatIndices = glm::vec4((GLfloat) vertex.boneIDs.x, (GLfloat) vertex.boneIDs.y, (GLfloat) vertex.boneIDs.z, (GLfloat) vertex.boneIDs.w);
+                boneWeightsData.push_back(vertex.boneWeights); // Store bone weights
+                boneIndicesData.push_back(floatIndices);    // Store bone indices
+            }
+
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, AnimatedvertexBufferID);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+            //glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), new_vertex_buffer_data, GL_STATIC_DRAW);
+
+            // Pass bone weights to the shader
+            glEnableVertexAttribArray(4); // Enable the attribute for bone weights
+            glBindBuffer(GL_ARRAY_BUFFER, boneWeightsID); // Assuming the buffer is already created and bound
+            glBufferData(GL_ARRAY_BUFFER, boneWeightsData.size() * sizeof(glm::vec4), boneWeightsData.data(), GL_STATIC_DRAW);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0); // Location 3 for bone weights
+
+
+            // Pass bone indices to the shader
+            glEnableVertexAttribArray(5); // Enable the attribute for bone indices
+            glBindBuffer(GL_ARRAY_BUFFER, boneIndicesID); // Assuming the buffer is already created and bound
+            glBufferData(GL_ARRAY_BUFFER, boneIndicesData.size() * sizeof(glm::vec4), boneIndicesData.data(), GL_STATIC_DRAW);
+            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), 0); // Location 4 for bone indices
+
+
+
+
+
+            std::vector<float> jointMatrixData;
+            for (const auto& bone : animationData.bones) {
+                const float* matPtr = glm::value_ptr(bone.finalTransformation);
+                jointMatrixData.insert(jointMatrixData.end(), matPtr, matPtr + 16);
+            }
+
+            glUniformMatrix4fv(jointMatricesID, animationData.bones.size(), GL_FALSE, jointMatrixData.data());
+
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, AnimatedindexBufferID);
+
+
+            // Set model-view-projection matrix
+            glm::mat4 mvp = cameraMatrix * modelMatrix;
+            glUniformMatrix4fv(AnimatedmvpMatrixID, 1, GL_FALSE, &mvp[0][0]);
+            glUniformMatrix4fv(AnimatedmodelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+
+            // Set textureSampler to use texture unit 0
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textureID);
+            glUniform1i(textureSamplerID, 0);
+
+            // Draw the box
+            glDrawElements(
+                    GL_TRIANGLES,      // mode
+                    numIndices,        // number of indices
+                    GL_UNSIGNED_INT,   // type
+                    (void *) 0           // element array buffer offset
+            );
+
+            glDisableVertexAttribArray(0);
+            glDisableVertexAttribArray(1);
+            glDisableVertexAttribArray(2);
+            glDisableVertexAttribArray(3);
+            glDisableVertexAttribArray(4);
+            glDisableVertexAttribArray(5);
+        } else {
+            glUseProgram(staticID);
+
+
+            modelMatrix = computeModelMatrix(position, rotation, scale);
+
+
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glEnableVertexAttribArray(1);
+            glBindBuffer(GL_ARRAY_BUFFER, colorBufferID);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+            // Enable UV buffer and texture sampler
+            glEnableVertexAttribArray(2);
+            glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glEnableVertexAttribArray(3);
+            glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+
+
+            // Set model-view-projection matrix
+            glm::mat4 mvp = cameraMatrix * modelMatrix;
+            glUniformMatrix4fv(modelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+            glUniformMatrix4fv(mvpMatrixID, 1, GL_FALSE, &mvp[0][0]);
+
+            // Set textureSampler to use texture unit 0
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textureID);
+            glUniform1i(textureSamplerID, 0);
+
+            // Draw the box
+            glDrawElements(
+                    GL_TRIANGLES,      // mode
+                    numIndices,        // number of indices
+                    GL_UNSIGNED_INT,   // type
+                    (void *) 0           // element array buffer offset
+            );
+
+            glDisableVertexAttribArray(0);
+            glDisableVertexAttribArray(1);
+            glDisableVertexAttribArray(2);
+            glDisableVertexAttribArray(3);
+        }
     }
 
     void lightRender(GLuint lightShader, Light light) {
@@ -687,7 +1122,6 @@ public:
         glDeleteVertexArrays(1, &vertexArrayID);
         glDeleteBuffers(1, &uvBufferID);
         glDeleteTextures(1, &textureID);
-        glDeleteProgram(programID);
     }
 
 };
@@ -893,7 +1327,6 @@ public:
         glDeleteVertexArrays(1, &vertexArrayID);
         glDeleteBuffers(1, &uvBufferID);
         glDeleteTextures(1, &textureID);
-        glDeleteProgram(programID);
     }
 };
 
@@ -1207,7 +1640,6 @@ public:
         glDeleteVertexArrays(1, &vertexArrayID);
         glDeleteBuffers(1, &uvBufferID);
         glDeleteTextures(1, &textureID);
-        glDeleteProgram(programID);
     }
 };
 
@@ -1321,7 +1753,6 @@ public:
         glDeleteBuffers(1, &vertexBufferID);
         glDeleteBuffers(1, &indexBufferID);
         glDeleteVertexArrays(1, &vertexArrayID);
-        glDeleteProgram(programID);
     }
 };
 
@@ -1488,6 +1919,278 @@ bool loadModelWithAssimp(const std::string& objFilePath,
     return true;
 }
 
+bool loadFbx(const std::string& fbxFilePath,
+             std::vector<GLfloat>& vertices,
+             std::vector<GLfloat>& normals,
+             std::vector<GLfloat>& uvs,
+             std::vector<GLuint>& indices,
+             std::vector<GLfloat>& colors) {
+    // Create an instance of the Assimp Importer
+    Assimp::Importer importer;
+
+    // Read the file
+    const aiScene* scene = importer.ReadFile(fbxFilePath,
+                                             aiProcess_Triangulate |       // Triangulate all faces
+                                             aiProcess_GenSmoothNormals | // Generate smooth normals if not present
+                                             aiProcess_FlipUVs);
+
+    // Check if the file was successfully loaded
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
+        return false;
+    }
+
+
+    // Iterate through meshes in the scene
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+        aiMesh* mesh = scene->mMeshes[i];
+
+
+        // Process vertices
+        for (unsigned int v = 0; v < mesh->mNumVertices; ++v) {
+            // Vertex position
+            vertices.push_back(mesh->mVertices[v].x);
+            vertices.push_back(mesh->mVertices[v].y);
+            vertices.push_back(mesh->mVertices[v].z);
+
+            // Vertex normals
+            if (mesh->HasNormals()) {
+                normals.push_back(mesh->mNormals[v].x);
+                normals.push_back(mesh->mNormals[v].y);
+                normals.push_back(mesh->mNormals[v].z);
+            }
+
+            // Texture coordinates (UVs)
+            if (mesh->mTextureCoords[0]) { // Assimp supports up to 8 UV channels; we use the first
+                uvs.push_back(mesh->mTextureCoords[0][v].x);
+                uvs.push_back(mesh->mTextureCoords[0][v].y);
+            } else {
+                uvs.push_back(0.0f); // Default value if no UVs are present
+                uvs.push_back(0.0f);
+            }
+
+            // Vertex colors
+            if (mesh->HasVertexColors(0)) { // Assimp supports up to 8 color channels; we use the first
+                colors.push_back(mesh->mColors[0][v].r);
+                colors.push_back(mesh->mColors[0][v].g);
+                colors.push_back(mesh->mColors[0][v].b);
+            } else {
+                colors.push_back(1.0f); // Default color (white)
+                colors.push_back(1.0f);
+                colors.push_back(1.0f);
+            }
+        }
+
+        // Process indices
+        for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
+            aiFace face = mesh->mFaces[f];
+            for (unsigned int j = 0; j < face.mNumIndices; ++j) {
+                indices.push_back(face.mIndices[j]);
+            }
+        }
+    }
+
+    return true;
+}
+
+AnimationData buildBoneHierarchy(const aiScene* scene, FileAnimationData& fileAnimationData) {
+    AnimationData hierarchicalData;
+    // Map bone names to their indices in the bone list
+    hierarchicalData.bones.resize(fileAnimationData.boneMap.size());
+
+    // Map bone names to their indices in the bone list
+    std::unordered_map<std::string, int> boneNameToIndex;
+    for (const auto& bonePair : fileAnimationData.boneMap) {
+        const std::string& boneName = bonePair.first;
+        const BoneInfo& boneInfo = bonePair.second;
+
+        BoneNode boneNode;
+        boneNode.index = boneInfo.index;
+        boneNode.name = boneName;
+        boneNode.offsetMatrix = boneInfo.offsetMatrix;
+        boneNode.localTransform = glm::mat4(1.0f); // Default identity matrix
+
+        // Directly assign the bone node into the vector at the specified index
+        hierarchicalData.bones[boneNode.index] = boneNode;
+        boneNameToIndex[boneName] = boneInfo.index;
+    }
+
+    // Recursively process the scene graph to establish parent-child relationships
+    std::function<void(const aiNode*, int, int*)> processNode = [&](const aiNode* node, int parentIndex, int * rootNode) {
+        std::string nodeName(node->mName.C_Str());
+
+        // Check if this node corresponds to a bone
+        auto it = boneNameToIndex.find(nodeName);
+        if (it != boneNameToIndex.end()) {
+
+            int boneIndex = it->second;
+            if (*rootNode == -1){
+                *rootNode = boneIndex;
+            }
+            if (parentIndex != -1) {
+                hierarchicalData.bones[parentIndex].childrenIndices.push_back(boneIndex);
+            }
+
+            // Set local transform (from aiNode transformation)
+            aiMatrix4x4 aiTransform = node->mTransformation;
+            glm::mat4 localTransform = glm::transpose(glm::make_mat4(&aiTransform.a1));
+            hierarchicalData.bones[boneIndex].localTransform = localTransform;
+
+            // Recursively process children
+            for (unsigned int i = 0; i < node->mNumChildren; i++) {
+                processNode(node->mChildren[i], boneIndex, rootNode);
+            }
+        } else {
+            // Node is not a bone, process children but skip storing it
+            for (unsigned int i = 0; i < node->mNumChildren; i++) {
+                processNode(node->mChildren[i], parentIndex, rootNode);
+            }
+        }
+    };
+
+    int rootNode = -1;
+    // Start recursion from the root node
+    processNode(scene->mRootNode, -1, &rootNode);
+    hierarchicalData.rootIndex = rootNode;
+
+    // Copy vertices, indices, and animations
+    hierarchicalData.vertices = std::move(fileAnimationData.vertices);
+    hierarchicalData.indices = std::move(fileAnimationData.indices);
+    hierarchicalData.animations = std::move(fileAnimationData.animations);
+
+    return hierarchicalData;
+}
+
+AnimationData loadFBXAnimation(const std::string& filePath) {
+    FileAnimationData FileanimationData;
+
+    // Import FBX file
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_LimitBoneWeights);
+
+    if (!scene || !scene->mRootNode) {
+        throw std::runtime_error("Failed to load file: " + filePath + " (" + importer.GetErrorString() + ")");
+    }
+
+    // 1. Process Mesh Data
+    if (scene->mNumMeshes > 0) {
+        const aiMesh* mesh = scene->mMeshes[0];
+        FileanimationData.vertices.reserve(mesh->mNumVertices);
+
+        std::unordered_map<std::string, int> boneMapping; // Bone name -> ID
+        std::vector<int> boneWeightsPerVertex(mesh->mNumVertices, 0);
+
+        // Extract vertex data
+        for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+            Vertex vertex;
+            vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+            vertex.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+
+            if (mesh->mTextureCoords[0]) {
+                vertex.uv = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+            } else {
+                vertex.uv = glm::vec2(0.0f, 0.0f);
+            }
+
+            vertex.boneWeights = glm::vec4(-2.0f);
+            vertex.boneIDs = glm::ivec4(-1);
+
+            FileanimationData.vertices.push_back(vertex);
+        }
+
+        // Extract bone data
+// Extract bone data
+        for (unsigned int i = 0; i < mesh->mNumBones; i++) {
+            std::string boneName = mesh->mBones[i]->mName.C_Str();
+            if (boneMapping.find(boneName) == boneMapping.end()) {
+                int boneID = static_cast<int>(boneMapping.size());
+                boneMapping[boneName] = boneID;
+
+                BoneInfo boneInfo;
+
+                // Ensure the offset matrix is handled correctly
+                // Assimp stores matrices in column-major order, but GLM expects row-major matrices.
+                // glm::transpose ensures the conversion between these formats.
+                boneInfo.offsetMatrix = (glm::make_mat4(&mesh->mBones[i]->mOffsetMatrix.a1));
+                boneInfo.index = boneID;
+
+
+                FileanimationData.boneMap[boneName] = boneInfo;
+            }
+
+            int boneID = boneMapping[boneName];
+
+            // Assign weights to vertices
+            for (unsigned int j = 0; j < mesh->mBones[i]->mNumWeights; j++) {
+                unsigned int vertexID = mesh->mBones[i]->mWeights[j].mVertexId;
+                float weight = mesh->mBones[i]->mWeights[j].mWeight;
+
+                // Ensure we don't exceed 4 bone influences per vertex
+                for (int k = 0; k < 4; ++k) {
+                    if (FileanimationData.vertices[vertexID].boneWeights[k] < 0.0f) { // Unused slot
+                        FileanimationData.vertices[vertexID].boneWeights[k] = weight;
+                        FileanimationData.vertices[vertexID].boneIDs[k] = boneID;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Extract indices
+        for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+            const aiFace& face = mesh->mFaces[i];
+            for (unsigned int j = 0; j < face.mNumIndices; j++) {
+                FileanimationData.indices.push_back(face.mIndices[j]);
+            }
+        }
+    }
+
+    // 2. Process Animation Data
+    if (scene->mNumAnimations > 0) {
+        for (unsigned int i = 0; i < scene->mNumAnimations; i++) {
+            const aiAnimation* anim = scene->mAnimations[i];
+            AnimationTrack animationTrack;
+            for (unsigned int j = 0; j < anim->mNumChannels; j++) {
+                const aiNodeAnim* channel = anim->mChannels[j];
+                BoneAnimation boneAnim;
+                boneAnim.name = channel->mNodeName.C_Str();
+
+                for (unsigned int k = 0; k < channel->mNumPositionKeys; k++) {
+                    aiVectorKey posKey = channel->mPositionKeys[k];
+                    aiQuatKey rotKey = channel->mRotationKeys[k];
+                    aiVectorKey scaleKey = channel->mScalingKeys[k];
+
+                    Keyframe keyframe;
+                    keyframe.position = glm::vec3(posKey.mValue.x, posKey.mValue.y, posKey.mValue.z);
+                    keyframe.rotation = glm::quat(rotKey.mValue.w, rotKey.mValue.x, rotKey.mValue.y, rotKey.mValue.z);
+                    keyframe.scale = glm::vec3(scaleKey.mValue.x, scaleKey.mValue.y, scaleKey.mValue.z);
+
+                    boneAnim.keyframeTimes.push_back(static_cast<float>((float)posKey.mTime/(float)anim->mTicksPerSecond));
+                    boneAnim.keyframes.push_back(keyframe);
+                    /*
+                    std::cout << "Animation: " << anim->mName.C_Str() << std::endl;
+                    std::cout << "keyframe: " << (float)posKey.mTime << std::endl;
+                    std::cout << "Duration (ticks): " << anim->mDuration << std::endl;
+                    std::cout << "Ticks per second: " << anim->mTicksPerSecond << std::endl;
+                    std::cout << "Stored time: " <<  boneAnim.keyframeTimes.back() << std::endl;
+                    if (anim->mTicksPerSecond == 0) {
+                        std::cout << "Keyframe times are in seconds." << std::endl;
+                    } else {
+                        std::cout << "Keyframe times are in ticks. Convert to seconds using: time = mTime / mTicksPerSecond." << std::endl;
+                    }
+                     */
+                }
+                animationTrack.boneAnims.push_back(boneAnim);
+
+            }
+            FileanimationData.animations.push_back(animationTrack);
+        }
+    }
+
+    return buildBoneHierarchy(scene, FileanimationData);
+}
+
+
 
 bool pause = false;
 
@@ -1585,6 +2288,16 @@ int main(void)
         }
     }
 
+    GLuint animation_shader = 0;
+    if (animation_shader == 0)
+    {
+        animation_shader = LoadShadersFromFile("../shaders/entityAnimated.vert", "../shaders/entityAnimated.frag");
+        if (animation_shader == 0)
+        {
+            std::cerr << "Failed to load shaders." << std::endl;
+        }
+    }
+
     GLuint gBuffer, gColour, gPosition, gNormal, rboDepth;
 
 
@@ -1616,7 +2329,7 @@ int main(void)
     wall->initialize(concrete_texture);
     geometries.push_back(wall);
 
-    Box * testBox1 = new Box(glm::vec3(0,32,0), glm::vec3(64, 64, 64), glm::vec3(0,45,0), geometry_programID);
+    Box * testBox1 = new Box(glm::vec3(128,32,0), glm::vec3(64, 64, 64), glm::vec3(0,45,0), geometry_programID);
     testBox1->initialize(concrete_texture);
     geometries.push_back(testBox1);
 
@@ -1624,19 +2337,23 @@ int main(void)
     testBox2->initialize(concrete_texture);
     geometries.push_back(testBox2);
 
-    std::vector<GLfloat> vertices, normals, uvs, colors;
+    std::vector<GLfloat> vertices, normals, uvs, colours;
     std::vector<GLuint> indices;
-    loadModelWithAssimp("../assets/models/lowPolyHuman/Man.obj", vertices, normals, uvs, indices);
+    loadFbx("../assets/models/lowPolyHuman/ManUnity.fbx", vertices, normals, uvs, indices, colours);
     //const std::string objFilePath = "../assets/models/lowPolyHuman/Man.obj";
     //MeshData mesh = loadObjVertexData(objFilePath);
-    for (int i = 0; i < vertices.size(); ++i) {
-        colors.push_back(1.0);
-
-    }
-    Entity * testModel = new Entity(glm::vec3(40,0,-40), glm::vec3(10, 10, 10), glm::vec3(0,75,0), entity_shader);
+    //for (int i = 0; i < vertices.size(); ++i) {
+    //    colors.push_back(1.0);
+    //
+    //}
+    Entity * testModel = new Entity(glm::vec3(0,0,0), glm::vec3(10, 10, 10), glm::vec3(0,90,90), entity_shader, animation_shader);
     testModel->setTexture("../assets/models/lowPolyHuman/ManColors.png");
-    testModel->loadModelData(vertices, normals, colors, indices, uvs);
+    testModel->loadModelData(vertices, normals, colours, indices, uvs);
+    AnimationData testAnimData = loadFBXAnimation("../assets/models/lowPolyHuman/ManUnity.fbx");
+    //printMatrix(testAnimData.bones[testAnimData.rootIndex].offsetMatrix);
+    testModel->loadAnimationData(testAnimData);
     entities.push_back(testModel);
+
 
 
     lightPosition = glm::vec3(150, 128, -280);
@@ -1658,7 +2375,10 @@ int main(void)
     glm::float32 zFar = 3000.0f;
     projectionMatrix = glm::perspective(glm::radians(FoV), (float) screenWidth / (float) screenHeight, zNear, zFar);
 
-
+    static double lastTime = glfwGetTime();
+    float time = 0.0f;			// Animation time
+    float fTime = 0.0f;			// Time for measuring fps
+    unsigned long frames = 0;
 
     float lastFrameTime = 0.0f;
     do
@@ -1671,6 +2391,7 @@ int main(void)
 
         if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
             testLight->intensity = testLight->intensity * 1.01;
+            testModel->playAnimation(0);
         }
         if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
             testLight->intensity = testLight->intensity / 1.01;
@@ -1680,7 +2401,10 @@ int main(void)
         float deltaTime = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
 
-
+        double currentTime = glfwGetTime();
+        float ModeldeltaTime = float(currentTime - lastTime);
+        lastTime = currentTime;
+        time += deltaTime;
 
         camera_update(deltaTime);
 
@@ -1695,6 +2419,7 @@ int main(void)
             g->render(vp);
         }
         for (Entity * e:entities) {
+            e->update(time);
             e->render(vp);
         }
 

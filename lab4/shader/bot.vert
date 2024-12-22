@@ -18,16 +18,16 @@ void main() {
     vec4 newWorldPosition = vec4(0.0);
     vec3 blendedNormal = vec3(0.0);
 
-    mat4 skinMat =
-            weights.x * jointMatrix[int(joints.x)] +
-            weights.y * jointMatrix[int(joints.y)] +
-            weights.z * jointMatrix[int(joints.z)] +
-            weights.w * jointMatrix[int(joints.w)];
+    //mat4 skinMat =
+    //        weights.x * jointMatrix[int(joints.x)] +
+    //        weights.y * jointMatrix[int(joints.y)] +
+    //        weights.z * jointMatrix[int(joints.z)] +
+    //        weights.w * jointMatrix[int(joints.w)];
 
 
 
-    newWorldPosition = skinMat * vec4(vertexPosition, 1.0);
-    gl_Position = MVP * newWorldPosition;
+    //newWorldPosition = skinMat * vec4(vertexPosition, 1.0);
+    gl_Position = MVP * vec4(vertexPosition, 1.0);;
 
     mat3 normalMatrix = mat3(transpose(inverse(skinMat)));
 

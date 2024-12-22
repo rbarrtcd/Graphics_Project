@@ -13,7 +13,9 @@ out vec3 fragPosition;
 uniform mat4 modelMatrix;
 uniform mat4 MVP;
 
+
 void main() {
+
     // Calculate world-space position
     vec4 worldPos = modelMatrix * vec4(vertexPosition, 1.0);
     fragPosition = worldPos.xyz;

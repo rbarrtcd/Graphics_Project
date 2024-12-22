@@ -44,7 +44,15 @@ static glm::vec3 lightPosition(-275.0f, 500.0f, 800.0f);
 static bool playAnimation = true;
 static float playbackSpeed = 2.0f;
 
-
+void printMatrix(const glm::mat4& matrix) {
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            std::cout << std::setw(10) << std::fixed << std::setprecision(4) << matrix[row][col] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl; // Separate matrices with a blank line
+}
 
 
 struct MyBot {
@@ -162,6 +170,9 @@ struct MyBot {
 				memcpy(m, ptr + j * 16, 16 * sizeof(float));
 				skinObject.inverseBindMatrices[j] = glm::make_mat4(m);
 			}
+            printMatrix(skinObject.inverseBindMatrices[1]);
+            printMatrix(skinObject.inverseBindMatrices[2]);
+            int x = 1;
 
 			assert(skin.joints.size() == accessor.count);
 
@@ -342,6 +353,7 @@ struct MyBot {
             }
         }
 	}
+
 
     void updateSkinning(const std::vector<glm::mat4> &nodeTransforms) {
         for (int i = 0; i < skinObjects.size(); ++i) {
