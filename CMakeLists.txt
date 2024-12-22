@@ -44,6 +44,7 @@ target_link_libraries(lab4_character
 add_executable(test_scene
 		test_scene.cpp
 		lab4/render/shader.cpp
+		entity.cpp
 		)
 
 target_link_libraries(test_scene

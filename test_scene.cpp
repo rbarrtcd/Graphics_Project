@@ -561,13 +561,15 @@ public:
     GLuint boneWeightsID;
     GLuint boneIndicesID;
 
+    std::vector<glm::vec4> boneWeightsData;
+    std::vector<glm::vec4> boneIndicesData;
+
     std::vector<Vertex> copiedVertices;
 
     struct AnimationData animationData;
     int currentAnimationTrack = -1; // Index of the current animation (-1 if no animation is playing)
     float animationTime = 0.0f;    // Time tracker for the current animation
     bool isAnimationPlaying = false; // Indicates if an animation is currently playing
-    bool hasAnimation = false;
 
     Entity(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, GLuint staticShader, GLuint animatedShader) {
         this->position = position;
@@ -575,7 +577,6 @@ public:
         this->rotation = rotation;
         this->staticID = staticShader;
         this->animatedID = animatedShader;
-        this->hasAnimation = false;
     }
 
     void loadModelData(const std::vector<GLfloat>& vertices,
@@ -607,7 +608,8 @@ public:
         uv_buffer_data = new GLfloat[uvs.size()];
         std::copy(uvs.begin(), uvs.end(), uv_buffer_data);
 
-        transformNormals(normal_buffer_data, numVertices, computeModelMatrix(position, rotation, scale));
+
+        //transformNormals(normal_buffer_data, numVertices, computeModelMatrix(position, rotation, scale));
         initializeBuffers();
         mvpMatrixID = glGetUniformLocation(staticID, "MVP");
         modelMatrixID = glGetUniformLocation(staticID, "modelMatrix");
@@ -650,48 +652,37 @@ public:
         glGenVertexArrays(1, &AnimatedvertexArrayID);
         glBindVertexArray(AnimatedvertexArrayID);
 
-        // Create a vertex buffer object to store the vertex data
-        glGenBuffers(1, &AnimatedvertexBufferID);
-        glBindBuffer(GL_ARRAY_BUFFER, AnimatedvertexBufferID);
-        glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), vertex_buffer_data, GL_STATIC_DRAW);
 
-        // Create a vertex buffer object to store the color data
-        glGenBuffers(1, &AnimatedcolorBufferID);
-        glBindBuffer(GL_ARRAY_BUFFER, AnimatedcolorBufferID);
-        glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), color_buffer_data, GL_STATIC_DRAW);
 
-        // Create a vertex buffer object to store the UV data
-        glGenBuffers(1, &AnimateduvBufferID);
-        glBindBuffer(GL_ARRAY_BUFFER, AnimateduvBufferID);
-        glBufferData(GL_ARRAY_BUFFER, numVertices*2*sizeof(GLfloat), uv_buffer_data, GL_STATIC_DRAW);
-
-        // Create an index buffer object to store the index data that defines triangle faces
-        glGenBuffers(1, &AnimatedindexBufferID);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, AnimatedindexBufferID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices*sizeof(GLfloat), index_buffer_data, GL_STATIC_DRAW);
-
-        glGenBuffers(1, &AnimatednormalBufferID);
-        glBindBuffer(GL_ARRAY_BUFFER, AnimatednormalBufferID);
-        glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), normal_buffer_data, GL_STATIC_DRAW);
-
-        glGenBuffers(1, &boneWeightsID);
-        glBindBuffer(GL_ARRAY_BUFFER, boneWeightsID);
-
-        // Create a vertex buffer object to store the UV data
-        glGenBuffers(1, &boneIndicesID);
-        glBindBuffer(GL_ARRAY_BUFFER, boneIndicesID);
     }
 
     void setTexture(const std::string& texturePath){
         textureID = LoadTextureTileBox(texturePath.c_str());
     }
 
-    void loadAnimationData(const AnimationData animationData) {
+    void loadAnimationData(AnimationData animationData) {
         this->animationData = animationData;
-        for (int i = 0; i < animationData.vertices.size(); ++i) {
-            copiedVertices.push_back(animationData.vertices[i]);
+
+        for (auto& vertex : animationData.vertices) {
+            glm::vec4 floatIndices = glm::vec4((GLfloat) vertex.boneIDs.x, (GLfloat) vertex.boneIDs.y, (GLfloat) vertex.boneIDs.z, (GLfloat) vertex.boneIDs.w);
+            if (vertex.boneWeights.x < 0.0) {vertex.boneWeights.x = 0; floatIndices.x = 0.0;}
+            if (vertex.boneWeights.y < 0.0) {vertex.boneWeights.y = 0; floatIndices.y = 0.0;}
+            if (vertex.boneWeights.z < 0.0) {vertex.boneWeights.z = 0; floatIndices.z = 0.0;}
+            if (vertex.boneWeights.w < 0.0) {vertex.boneWeights.w = 0; floatIndices.w = 0.0;}
+            boneWeightsData.push_back(vertex.boneWeights);
+            boneIndicesData.push_back(floatIndices);
+
+
         }
-        this->hasAnimation = true;
+
+        glGenBuffers(1, &boneWeightsID);
+        glBindBuffer(GL_ARRAY_BUFFER, boneWeightsID);
+        glBufferData(GL_ARRAY_BUFFER, boneWeightsData.size() * sizeof(glm::vec4), boneWeightsData.data(), GL_STATIC_DRAW);
+
+        // Create a vertex buffer object to store the UV data
+        glGenBuffers(1, &boneIndicesID);
+        glBindBuffer(GL_ARRAY_BUFFER, boneIndicesID);
+        glBufferData(GL_ARRAY_BUFFER, boneIndicesData.size() * sizeof(glm::vec4), boneIndicesData.data(), GL_STATIC_DRAW);
 
 
     }
@@ -702,46 +693,9 @@ public:
         isAnimationPlaying = true;
     }
 
-    glm::mat4 getBoneNodeTransform(const BoneNode& boneNode) {
-        glm::mat4 transform(1.0f);
 
-        // Combine transformations if they exist in the BoneNode
-        if (boneNode.localTransform != glm::mat4(1.0f)){
-            transform = boneNode.localTransform;
-        } else {
-            // Apply translation
-            glm::vec3 translation = glm::vec3(boneNode.offsetMatrix[3]); // Extract translation from offsetMatrix
-            if (translation != glm::vec3(0.0f)) {
-                transform = glm::translate(transform, translation);
-            }
 
-            // Apply rotation (if stored as part of localTransform or in quaternion form, use it)
-            glm::quat rotation = glm::quat_cast(boneNode.offsetMatrix); // Extract rotation from offsetMatrix
-            if (glm::length(rotation) != 0.0f) {
-                transform *= glm::mat4_cast(rotation);
-            }
 
-            // Apply scaling
-            glm::vec3 scale = glm::vec3(
-                    glm::length(glm::vec3(boneNode.offsetMatrix[0])),
-                    glm::length(glm::vec3(boneNode.offsetMatrix[1])),
-                    glm::length(glm::vec3(boneNode.offsetMatrix[2]))
-            );
-            if (scale != glm::vec3(1.0f)) {
-                transform = glm::scale(transform, scale);
-            }
-        }
-
-        return transform;
-    }
-
-    void computeLocalNodeTransform(const AnimationData& animationData,
-                                   int nodeIndex,
-                                   std::vector<glm::mat4>& localTransforms)
-    {
-        const BoneNode& bone = animationData.bones[nodeIndex];
-        localTransforms[nodeIndex] = getBoneNodeTransform(bone);
-    }
 
     void computeGlobalBoneTransform(
             const AnimationData& animationData,
@@ -767,10 +721,10 @@ public:
 
 
 
-    void update(float deltaTime) {
+    void update() {
         if (currentAnimationTrack >= 0 && isAnimationPlaying) {
             // Advance animation time
-            animationTime += deltaTime;
+            animationTime += (glfwGetTime()-animationTime);
 
             std::vector<glm::mat4> nodeTransforms(animationData.bones.size());
             for (size_t i = 0; i < nodeTransforms.size(); ++i) {
@@ -806,48 +760,49 @@ public:
 
 
             }
-            int x = 0;
             /*
-            for (size_t i = 0; i < copiedVertices.size(); ++i) {
-                Vertex& vertex = copiedVertices[i];
-                glm::mat4 skinMat = glm::mat4(0.0f);
-                float boneSum = 0.0f;
+int x = 0;
 
-                for (int j = 0; j < 4; ++j) {
-                    int boneID = vertex.boneIDs[j];
-                    float boneWeight = vertex.boneWeights[j];
+for (size_t i = 0; i < copiedVertices.size(); ++i) {
+    Vertex& vertex = copiedVertices[i];
+    glm::mat4 skinMat = glm::mat4(0.0f);
+    float boneSum = 0.0f;
 
-                    if (boneID < 0 || boneWeight <= 0.0f) {
-                        continue; // Skip invalid bones
-                    }
+    for (int j = 0; j < 4; ++j) {
+        int boneID = vertex.boneIDs[j];
+        float boneWeight = vertex.boneWeights[j];
 
-                    //const glm::mat4& finalTransform = glm::transpose(animationData.bones[boneID].finalTransformation);
-                    const glm::mat4& finalTransform = animationData.bones[boneID].finalTransformation;
-                    skinMat += finalTransform * boneWeight;
-                    boneSum += boneWeight;
+        if (boneID < 0 || boneWeight <= 0.0f) {
+            continue; // Skip invalid bones
+        }
 
-                    // Debugging output
-                    //std::cout << "Bone: " << animationData.bones[boneID].name << ", Weight: " << boneWeight << "\n";
-                    //printMatrix(finalTransform);
-                }
+        //const glm::mat4& finalTransform = glm::transpose(animationData.bones[boneID].finalTransformation);
+        const glm::mat4& finalTransform = animationData.bones[boneID].finalTransformation;
+        skinMat += finalTransform * boneWeight;
+        boneSum += boneWeight;
 
-                // Normalize the skinning matrix
-                if (boneSum > 0.0f) {
-                    skinMat /= boneSum;
-                }
+        // Debugging output
+        //std::cout << "Bone: " << animationData.bones[boneID].name << ", Weight: " << boneWeight << "\n";
+        //printMatrix(finalTransform);
+    }
 
-                // Apply the skinning transformation
-                glm::vec4 transformed = skinMat * glm::vec4(vertex.position, 1.0f);
-                glm::vec3 transformedPosition = glm::vec3(transformed);
+    // Normalize the skinning matrix
+    if (boneSum > 0.0f) {
+        skinMat /= boneSum;
+    }
 
-                // Debug final position
-                //std::cout << "Transformed position: " << transformedPosition.x << ", "
-                //          << transformedPosition.y << ", " << transformedPosition.z << "\n";
+    // Apply the skinning transformation
+    glm::vec4 transformed = skinMat * glm::vec4(vertex.position, 1.0f);
+    glm::vec3 transformedPosition = glm::vec3(transformed);
 
-                // Update the vertex data
-                animationData.vertices[i].position = transformedPosition;
-            }
-        */
+    // Debug final position
+    //std::cout << "Transformed position: " << transformedPosition.x << ", "
+    //          << transformedPosition.y << ", " << transformedPosition.z << "\n";
+
+    // Update the vertex data
+    animationData.vertices[i].position = transformedPosition;
+}
+*/
 
 
 
@@ -882,7 +837,6 @@ public:
             return; // Invalid track, do nothing
         }
         const AnimationTrack &animation = animationData.animations[currentAnimationTrack];
-        time = 0.0;
         // Precompute animation time (looping back when it exceeds duration)
         const std::vector<float> &keyframeTimes = animation.boneAnims[0].keyframeTimes;
         if (keyframeTimes.empty()) {
@@ -950,55 +904,34 @@ public:
             modelMatrix = computeModelMatrix(position, rotation, scale);
 
 
-
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
             glEnableVertexAttribArray(1);
-            glBindBuffer(GL_ARRAY_BUFFER, AnimatedcolorBufferID);
+            glBindBuffer(GL_ARRAY_BUFFER, colorBufferID);
             glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
             // Enable UV buffer and texture sampler
             glEnableVertexAttribArray(2);
-            glBindBuffer(GL_ARRAY_BUFFER, AnimateduvBufferID);
+            glBindBuffer(GL_ARRAY_BUFFER, uvBufferID);
             glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
             glEnableVertexAttribArray(3);
-            glBindBuffer(GL_ARRAY_BUFFER, AnimatednormalBufferID);
+            glBindBuffer(GL_ARRAY_BUFFER, normalBufferID);
             glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-            std::vector<glm::vec4> boneWeightsData;
-            std::vector<glm::vec4> boneIndicesData;
-            GLfloat * new_vertex_buffer_data = new GLfloat[numVertices*3];
-            int i = 0;
-            for (const auto& vertex : animationData.vertices) {
-                new_vertex_buffer_data[i] = vertex.position.x;
-                new_vertex_buffer_data[i+1] = vertex.position.y;
-                new_vertex_buffer_data[i+2] = vertex.position.z;
-                i+=3;
-                glm::vec4 floatIndices = glm::vec4((GLfloat) vertex.boneIDs.x, (GLfloat) vertex.boneIDs.y, (GLfloat) vertex.boneIDs.z, (GLfloat) vertex.boneIDs.w);
-                boneWeightsData.push_back(vertex.boneWeights); // Store bone weights
-                boneIndicesData.push_back(floatIndices);    // Store bone indices
-            }
-
-            glEnableVertexAttribArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, AnimatedvertexBufferID);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-            //glBufferData(GL_ARRAY_BUFFER, numVertices*3*sizeof(GLfloat), new_vertex_buffer_data, GL_STATIC_DRAW);
 
             // Pass bone weights to the shader
             glEnableVertexAttribArray(4); // Enable the attribute for bone weights
             glBindBuffer(GL_ARRAY_BUFFER, boneWeightsID); // Assuming the buffer is already created and bound
-            glBufferData(GL_ARRAY_BUFFER, boneWeightsData.size() * sizeof(glm::vec4), boneWeightsData.data(), GL_STATIC_DRAW);
-            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0); // Location 3 for bone weights
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, (void*)0); // Location 3 for bone weights
 
 
             // Pass bone indices to the shader
             glEnableVertexAttribArray(5); // Enable the attribute for bone indices
             glBindBuffer(GL_ARRAY_BUFFER, boneIndicesID); // Assuming the buffer is already created and bound
-            glBufferData(GL_ARRAY_BUFFER, boneIndicesData.size() * sizeof(glm::vec4), boneIndicesData.data(), GL_STATIC_DRAW);
-            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), 0); // Location 4 for bone indices
-
-
-
+            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 0, 0); // Location 4 for bone indices
 
 
             std::vector<float> jointMatrixData;
@@ -1010,7 +943,7 @@ public:
             glUniformMatrix4fv(jointMatricesID, animationData.bones.size(), GL_FALSE, jointMatrixData.data());
 
 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, AnimatedindexBufferID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
 
 
             // Set model-view-projection matrix
@@ -1089,31 +1022,83 @@ public:
         }
     }
 
-    void lightRender(GLuint lightShader, Light light) {
-        glUseProgram(lightShader);
+    void lightRender(GLuint lightShader, GLuint entityLighting, Light light) {
+        if (isAnimationPlaying) {
+            glUseProgram(entityLighting);
 
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+            // Pass bone weights to the shader
+            glEnableVertexAttribArray(1); // Enable the attribute for bone weights
+            glBindBuffer(GL_ARRAY_BUFFER, boneWeightsID); // Assuming the buffer is already created and bound
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0); // Location 3 for bone weights
 
-        glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
-        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices"), 6, GL_FALSE, &light.VPmatrices[0][0][0]);
 
-        glUniform3fv(glGetUniformLocation(lightShader, "lightPos"), 1, &light.position[0]);
-        glUniform1f(glGetUniformLocation(lightShader, "farPlane"), light.lightRange);
+            // Pass bone indices to the shader
+            glEnableVertexAttribArray(2); // Enable the attribute for bone indices
+            glBindBuffer(GL_ARRAY_BUFFER, boneIndicesID); // Assuming the buffer is already created and bound
+            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, 0); // Location 4 for bone indices
 
-        // Draw the box
-        glDrawElements(
-                GL_TRIANGLES,      // mode
-                numIndices,    	// number of indices
-                GL_UNSIGNED_INT,   // type
-                (void*)0           // element array buffer offset
-        );
 
-        glDisableVertexAttribArray(0);
+            std::vector<float> jointMatrixData;
+            for (const auto& bone : animationData.bones) {
+                const float* matPtr = glm::value_ptr(bone.finalTransformation);
+                jointMatrixData.insert(jointMatrixData.end(), matPtr, matPtr + 16);
+            }
+
+            glUniformMatrix4fv(glGetUniformLocation(entityLighting, "jointMatrix"), animationData.bones.size(), GL_FALSE, jointMatrixData.data());
+
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+
+            glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
+            glUniformMatrix4fv(glGetUniformLocation(entityLighting, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(entityLighting, "shadowMatrices"), 6, GL_FALSE,
+                               &light.VPmatrices[0][0][0]);
+
+            glUniform3fv(glGetUniformLocation(entityLighting, "lightPos"), 1, &light.position[0]);
+            glUniform1f(glGetUniformLocation(entityLighting, "farPlane"), light.lightRange);
+
+            // Draw the box
+            glDrawElements(
+                    GL_TRIANGLES,      // mode
+                    numIndices,        // number of indices
+                    GL_UNSIGNED_INT,   // type
+                    (void *) 0           // element array buffer offset
+            );
+
+            glDisableVertexAttribArray(0);
+            glDisableVertexAttribArray(1);
+            glDisableVertexAttribArray(2);
+        } else {
+            glUseProgram(lightShader);
+
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+
+            glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
+            glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices"), 6, GL_FALSE,
+                               &light.VPmatrices[0][0][0]);
+
+            glUniform3fv(glGetUniformLocation(lightShader, "lightPos"), 1, &light.position[0]);
+            glUniform1f(glGetUniformLocation(lightShader, "farPlane"), light.lightRange);
+
+            // Draw the box
+            glDrawElements(
+                    GL_TRIANGLES,      // mode
+                    numIndices,        // number of indices
+                    GL_UNSIGNED_INT,   // type
+                    (void *) 0           // element array buffer offset
+            );
+
+            glDisableVertexAttribArray(0);
+        }
     }
     void cleanup() {
         glDeleteBuffers(1, &vertexBufferID);
@@ -1666,9 +1651,13 @@ public:
     GLuint gPositionID;
     GLuint gNormalID;
     GLuint gAlbedoSpecID;
-    GLuint lightPositionID;
-    GLuint lightColorID;
-    GLuint lightIntensityID;
+
+    GLuint depthMapArrayID;
+    GLuint lightPositionArrayID;
+    GLuint lightColorArrayID;
+    GLuint lightIntensityArrayID;
+    GLuint lightRangeArrayID;
+    GLuint numLightsID;
 
     DeferredShader(GLuint programID) {
         this->programID = programID;
@@ -1693,19 +1682,20 @@ public:
         // Get uniform locations for G-buffer textures
         gPositionID = glGetUniformLocation(programID, "gPosition");
         gNormalID = glGetUniformLocation(programID, "gNormal");
-        gAlbedoSpecID = glGetUniformLocation(programID, "gAlbedoSpec");
+        gAlbedoSpecID = glGetUniformLocation(programID, "gColour");
 
-        // Get uniform locations for light properties
-        lightPositionID = glGetUniformLocation(programID, "lightPosition");
-        lightIntensityID = glGetUniformLocation(programID, "lightIntensity");
-        lightColorID = glGetUniformLocation(programID, "lightColour");
+        // Get uniform locations for light properties arrays
+        depthMapArrayID = glGetUniformLocation(programID, "depthMaps");
+        lightPositionArrayID = glGetUniformLocation(programID, "lPosition");
+        lightColorArrayID = glGetUniformLocation(programID, "lColour");
+        lightIntensityArrayID = glGetUniformLocation(programID, "lIntensity");
+        lightRangeArrayID = glGetUniformLocation(programID, "lRange");
+        numLightsID = glGetUniformLocation(programID, "numLights");
     }
 
-    void render(GLuint gBuffer, Light theLight, GLuint gColour, GLuint gPosition, GLuint gNormal) {
+    void render(GLuint gBuffer, GLuint gColour, GLuint gPosition, GLuint gNormal, std::vector<Light *> lights) {
         // Use the shader program
         glUseProgram(programID);
-
-
 
         // Bind G-buffer textures to texture units
         glActiveTexture(GL_TEXTURE0);
@@ -1720,16 +1710,38 @@ public:
         glBindTexture(GL_TEXTURE_2D, gNormal);
         glUniform1i(gNormalID, 2);
 
-        // Bind the depth map (cubemap) to a texture unit
-        glActiveTexture(GL_TEXTURE3); // Choose an unused texture unit
-        glBindTexture(GL_TEXTURE_CUBE_MAP, theLight.shadowCubeMap); // shadowFBO should be the cubemap texture
-        glUniform1i(glGetUniformLocation(programID, "depthMap"), 3); // Ensure the shader knows the correct texture unit
+        // Prepare light data for uploading
+        std::vector<glm::vec3> lightPositions;
+        std::vector<glm::vec3> lightColors;
+        std::vector<float> lightIntensities;
+        std::vector<float> lightRanges;
+        std::vector<GLint> cubeMapIndices;
 
-        // Set light properties
-        glUniform3fv(lightPositionID, 1, &theLight.position[0]);
-        glUniform3fv(lightColorID, 1, &theLight.colour[0]);
-        glUniform1f(lightIntensityID, theLight.intensity);
-        glUniform1f(glGetUniformLocation(programID, "lightRange"), theLight.lightRange);
+        for (size_t i = 0; i < lights.size(); ++i) {
+            Light *light = lights[i];
+            glActiveTexture(GL_TEXTURE3+i);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, light->shadowCubeMap);
+
+
+            cubeMapIndices.push_back(3+i);
+
+            // Collect light properties
+            lightPositions.push_back(light->position);
+            lightColors.push_back(light->colour);
+            lightIntensities.push_back(light->intensity);
+            lightRanges.push_back(light->lightRange);
+        }
+
+        // Upload light data to the shader
+        glUniform3fv(lightPositionArrayID, lightPositions.size(), glm::value_ptr(lightPositions[0]));
+        glUniform3fv(lightColorArrayID, lightColors.size(), glm::value_ptr(lightColors[0]));
+        glUniform1fv(lightIntensityArrayID, lightIntensities.size(), lightIntensities.data());
+        glUniform1fv(lightRangeArrayID, lightRanges.size(), lightRanges.data());
+        glUniform1i(numLightsID, static_cast<int>(lights.size()));
+        glUniform1iv(depthMapArrayID, cubeMapIndices.size(), cubeMapIndices.data()); // Ensure the shader knows the correct texture unit
+
+
+
         // Bind the vertex array and set up vertex attributes
         glBindVertexArray(vertexArrayID);
 
@@ -1755,6 +1767,7 @@ public:
         glDeleteVertexArrays(1, &vertexArrayID);
     }
 };
+
 
 
 void camera_update(float deltaTime){
@@ -1831,93 +1844,7 @@ void createGBuffer(GLuint* gBuffer, GLuint*  gColour, GLuint* gPosition, GLuint*
 }
 
 
-bool loadModelWithAssimp(const std::string& objFilePath,
-                         std::vector<GLfloat>& vertices,
-                         std::vector<GLfloat>& normals,
-                         std::vector<GLfloat>& uvs,
-                         std::vector<GLuint>& indices) {
-    // Create an Assimp Importer instance
-    Assimp::Importer importer;
 
-    // Load the model with Assimp
-    const aiScene* scene = importer.ReadFile(
-            objFilePath,
-            aiProcess_Triangulate |          // Convert all faces to triangles
-            aiProcess_JoinIdenticalVertices | // Combine duplicate vertices
-            aiProcess_GenSmoothNormals |     // Generate normals if missing
-            aiProcess_FlipUVs                // Flip UVs (if necessary for your renderer)
-    );
-
-    // Check if the model was loaded successfully
-    if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
-        std::cerr << "ERROR: Assimp failed to load model: " << importer.GetErrorString() << std::endl;
-        return false;
-    }
-
-    // Assimp loads the model as a scene graph; process the root node
-    aiMesh* mesh = scene->mMeshes[0]; // Assuming the model contains only one mesh
-    if (!mesh) {
-        std::cerr << "ERROR: No mesh found in the file." << std::endl;
-        return false;
-    }
-
-    // Extract vertices, normals, and UVs
-    vertices.reserve(mesh->mNumVertices * 3); // Each vertex has 3 components: x, y, z
-    normals.reserve(mesh->mNumVertices * 3); // Each normal has 3 components: nx, ny, nz
-    uvs.reserve(mesh->mNumVertices * 2);     // Each UV has 2 components: u, v
-
-    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-        // Vertex position
-        vertices.push_back(mesh->mVertices[i].x);
-        vertices.push_back(mesh->mVertices[i].y);
-        vertices.push_back(mesh->mVertices[i].z);
-
-        // Normal vector
-        if (mesh->HasNormals()) {
-            normals.push_back(mesh->mNormals[i].x);
-            normals.push_back(mesh->mNormals[i].y);
-            normals.push_back(mesh->mNormals[i].z);
-        } else {
-            normals.push_back(0.0f);
-            normals.push_back(0.0f);
-            normals.push_back(0.0f);
-        }
-
-        // Texture coordinates
-        if (mesh->HasTextureCoords(0)) {
-            uvs.push_back(mesh->mTextureCoords[0][i].x);
-            uvs.push_back(mesh->mTextureCoords[0][i].y);
-        } else {
-            uvs.push_back(0.0f);
-            uvs.push_back(0.0f);
-        }
-    }
-
-    // Extract indices
-    indices.reserve(mesh->mNumFaces * 3); // Each face is a triangle with 3 indices
-    for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
-        const aiFace& face = mesh->mFaces[i];
-        if (face.mNumIndices == 3) { // Ensure the face is a triangle
-            indices.push_back(face.mIndices[0]);
-            indices.push_back(face.mIndices[1]);
-            indices.push_back(face.mIndices[2]);
-        }
-    }
-
-    // Load texture (optional: Assimp can extract texture information, but actual loading depends on your library)
-    if (scene->HasMaterials()) {
-        aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-        aiString texturePath;
-
-        if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS) {
-            std::cout << "Texture Path: " << texturePath.C_Str() << std::endl;
-            // You can use this path to load the texture (e.g., with SOIL, stb_image, etc.)
-            // Note: Texture paths are relative to the OBJ file location
-        }
-    }
-
-    return true;
-}
 
 bool loadFbx(const std::string& fbxFilePath,
              std::vector<GLfloat>& vertices,
@@ -2298,6 +2225,16 @@ int main(void)
         }
     }
 
+    GLuint entityLight_shader = 0;
+    if (entityLight_shader == 0)
+    {
+        entityLight_shader = LoadShadersFromFile("../shaders/shadowEntity.vert", "../shaders/shadowEntity.geom", "../shaders/shadowEntity.frag");
+        if (entityLight_shader == 0)
+        {
+            std::cerr << "Failed to load shaders." << std::endl;
+        }
+    }
+
     GLuint gBuffer, gColour, gPosition, gNormal, rboDepth;
 
 
@@ -2360,6 +2297,10 @@ int main(void)
     Light * testLight = new Light(lightPosition, glm::vec3(255, 164.65, 38.43), 100.0, 1024, 4096.0);
     lights.push_back(testLight);
 
+    //lightPosition = glm::vec3(-150, 64, -100);
+    Light * testLight2 = new Light(glm::vec3(-150, 64, -100), glm::vec3(123, 244.65, 38.43), 50.0, 960, 2048.0);
+    lights.push_back(testLight2);
+
     Box * lightBox = new Box(lightPosition, glm::vec3(4, 4, 4), glm::vec3(0,0,0), geometry_programID);
     lightBox->initialize(concrete_texture);
     geometries.push_back(lightBox);
@@ -2419,7 +2360,7 @@ int main(void)
             g->render(vp);
         }
         for (Entity * e:entities) {
-            e->update(time);
+            e->update();
             e->render(vp);
         }
 
@@ -2438,7 +2379,7 @@ int main(void)
             }
 
             for (Entity * e:entities) {
-                e->lightRender(shadowMap_shader, *l);
+                e->lightRender(shadowMap_shader, entityLight_shader, *l);
             }
 
 
@@ -2450,6 +2391,7 @@ int main(void)
             //saveCubeMapDepthTexture(testLight->shadowFBO, testLight->shadowCubeMap, "depther.png");
             saveGBufferTextures(gBuffer, gColour, gPosition, gNormal, rboDepth,1920, 1080);
             saveDepthCubemapToImage(testLight->shadowCubeMap, "light_depth_map.png");
+            saveDepthCubemapToImage(testLight2->shadowCubeMap, "light_depth_map2.png");
 
 
         }
@@ -2462,7 +2404,7 @@ int main(void)
 
 
         //Implmenet Lighting Pass
-        deferredShader->render(gBuffer, *testLight, gColour, gPosition, gNormal);
+        deferredShader->render(gBuffer, gColour, gPosition, gNormal, lights);
         glfwSwapBuffers(window);
         if (pause){
             std::this_thread::sleep_for(std::chrono::seconds(10));

@@ -22,7 +22,8 @@ void main() {
 
     // Pass the color and normal to the fragment shader
     fragColor = vec4(vertexColor, 1.0);
-    fragNormal = vertexNormal;  // World space normal
+    mat3 normalMatrix = mat3(transpose(inverse(modelMatrix)));
+    fragNormal = normalize(normalMatrix * vertexNormal);
     fragUV = vertexUV;
 
     // Transform the vertex position to clip space
