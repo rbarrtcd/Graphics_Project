@@ -49,6 +49,8 @@ add_executable(test_scene
 		geometry.cpp
 		utilities.cpp
 		primitives.cpp
+		skybox.cpp
+		deferredShader.cpp
 		)
 
 target_link_libraries(test_scene

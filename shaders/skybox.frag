@@ -2,15 +2,18 @@
 
 in vec3 TexCoords;
 
-out vec4 FragColor;
+layout (location = 0) out vec4 outputColour;
+layout (location = 1) out vec3 worldPosition;
+layout (location = 2) out vec3 frag_norm_vec;
+layout (location = 3) out float emit;
 
 uniform samplerCube skybox;
-float linearizeDepth(float depth, float near, float far) {
-    float z = depth * 2.0 - 1.0;  // Transform depth to NDC (-1 to 1)
-    return (2.0 * near * far) / (far + near - z * (far - near));
-}
 
 void main() {
-    float scale = linearizeDepth(texture(skybox, TexCoords).r, 1.0, 1240.0)/1240.0 ;
-    FragColor = vec4(scale, scale, scale, 1);
+    outputColour = vec4(texture(skybox, TexCoords).rgb, 1.0);
+    //outputColour = vec4(0.3, 0.7, 0.5, 1.0);
+    worldPosition = TexCoords;
+    frag_norm_vec = vec3(0.0);
+    emit = 1.0;
+
 }
