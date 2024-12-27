@@ -19,5 +19,5 @@ void main()
 	outputColour = vec4(colouredTexture.rgb, 1.0);
 	frag_norm_vec = normalize(fragNormal);
 	worldPosition = fragPosition;
-	emit = 0.0;
+	emit = 1.0;
 }

@@ -577,7 +577,7 @@ AnimationData loadFBXAnimation(const std::string& filePath) {
                 // Ensure the offset matrix is handled correctly
                 // Assimp stores matrices in column-major order, but GLM expects row-major matrices.
                 // glm::transpose ensures the conversion between these formats.
-                boneInfo.offsetMatrix = (glm::make_mat4(&mesh->mBones[i]->mOffsetMatrix.a1));
+                boneInfo.offsetMatrix = glm::transpose(glm::make_mat4(&mesh->mBones[i]->mOffsetMatrix.a1));
                 boneInfo.index = boneID;
 
 

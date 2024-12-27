@@ -213,7 +213,7 @@ void Entity::update() {
         for (size_t i = 0; i < animationData.bones.size(); ++i) {
             const BoneNode& bone = animationData.bones[i];
             const glm::mat4& globalTransform = globalTransforms[i];
-            const glm::mat4& offsetMatrix = glm::transpose(bone.offsetMatrix);
+            const glm::mat4& offsetMatrix = bone.offsetMatrix;
 
             animationData.bones[i].finalTransformation = globalTransform * offsetMatrix;
 

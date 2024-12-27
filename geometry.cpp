@@ -26,7 +26,7 @@ Geometry::Geometry(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, GLui
     this->programID = programID;
 }
 
-void Geometry::initialize(MeshData meshData, const char *texture_file_path) {
+void Geometry::initialize(MeshData meshData, GLuint texture_ID) {
     this->numVertices = meshData.numVertices;
     this->numIndices = meshData.numIndices;
 
@@ -80,7 +80,8 @@ void Geometry::initialize(MeshData meshData, const char *texture_file_path) {
     mvpMatrixID = glGetUniformLocation(programID, "MVP");
     modelMatrixID = glGetUniformLocation(programID, "modelMatrix");
 
-    textureID = LoadTextureTileBox(texture_file_path);
+    //textureID = LoadTextureTileBox(texture_file_path);
+    textureID = texture_ID;
     textureSamplerID = glGetUniformLocation(programID, "textureSampler");
 }
 
@@ -134,7 +135,7 @@ void Geometry::lightRender(GLuint lightShader, Light light) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
 
-    glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
+    //glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
     glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices"), 6, GL_FALSE, &light.VPmatrices[0][0][0]);
 

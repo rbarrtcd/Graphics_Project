@@ -129,7 +129,6 @@ GLuint Skybox::loadCubemap(const std::vector<std::string>& paths) {
     // Generate mipmaps for the cubemap texture
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
-    assert(glGetError() == GL_NO_ERROR);
 
     return textureID;
 }

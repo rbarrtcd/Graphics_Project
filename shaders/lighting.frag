@@ -10,7 +10,7 @@ uniform sampler2D gColour;
 uniform sampler2D gEmit;
 
 
-const int MAX_LIGHTS = 25;
+const int MAX_LIGHTS = 16;
 
 
 uniform samplerCube  depthMaps[MAX_LIGHTS];
@@ -34,11 +34,25 @@ float calculateShadow(vec3 fragPos, vec3 lightPosition, float lightRange, const 
     if (lightIndex == 0) { closestDepth = texture(depthMaps[0], norma).r; }
     else if (lightIndex == 1) { closestDepth = texture(depthMaps[1], norma).r; }
     else if (lightIndex == 2) { closestDepth = texture(depthMaps[2], norma).r; }
+    else if (lightIndex == 3) { closestDepth = texture(depthMaps[3], norma).r; }
+    else if (lightIndex == 4) { closestDepth = texture(depthMaps[4], norma).r; }
+    else if (lightIndex == 5) { closestDepth = texture(depthMaps[5], norma).r; }
+    else if (lightIndex == 6) { closestDepth = texture(depthMaps[6], norma).r; }
+    else if (lightIndex == 7) { closestDepth = texture(depthMaps[7], norma).r; }
+    else if (lightIndex == 8) { closestDepth = texture(depthMaps[8], norma).r; }
+    else if (lightIndex == 9) { closestDepth = texture(depthMaps[9], norma).r; }
+    else if (lightIndex == 10) { closestDepth = texture(depthMaps[10], norma).r; }
+    else if (lightIndex == 11) { closestDepth = texture(depthMaps[11], norma).r; }
+    else if (lightIndex == 12) { closestDepth = texture(depthMaps[12], norma).r; }
+    else if (lightIndex == 13) { closestDepth = texture(depthMaps[13], norma).r; }
+    else if (lightIndex == 14) { closestDepth = texture(depthMaps[14], norma).r; }
+    else if (lightIndex == 15) { closestDepth = texture(depthMaps[15], norma).r; }
 
 
 
 
-    float shadowBias = 0.0009;
+
+    float shadowBias = 0.0015;
     float currentDepth = length(fragToLight) / lightRange;
     float shadow = (currentDepth - shadowBias > closestDepth) ? 0.2 : 1.0;
 

@@ -61,3 +61,22 @@ target_link_libraries(test_scene
 
 		)
 
+add_executable(city
+		city.cpp
+		lab4/render/shader.cpp
+		entity.cpp
+		light.cpp
+		geometry.cpp
+		utilities.cpp
+		primitives.cpp
+		skybox.cpp
+		deferredShader.cpp
+		)
+
+target_link_libraries(city
+		glfw
+		${OPENGL_LIBRARY}
+		glad
+		assimp
+
+		)

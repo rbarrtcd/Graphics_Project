@@ -39,7 +39,7 @@ public:
 
     Geometry(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation, GLuint programID);
 
-    void initialize(MeshData meshData, const char *texture_file_path);
+    void initialize(MeshData meshData, GLuint texture_ID);
     void render(glm::mat4 cameraMatrix);
     void lightRender(GLuint lightShader, Light light);
     void cleanup();

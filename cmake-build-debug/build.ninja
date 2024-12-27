@@ -231,6 +231,107 @@ build test_scene.exe: CXX_EXECUTABLE_LINKER__test_scene_Debug CMakeFiles\test_sc
   TARGET_IMPLIB = test_scene.lib
   TARGET_PDB = test_scene.pdb
 
+# =============================================================================
+# Object build statements for EXECUTABLE target city
+
+
+#############################################
+# Order-only phony target for city
+
+build cmake_object_order_depends_target_city: phony || cmake_object_order_depends_target_assimp cmake_object_order_depends_target_glad cmake_object_order_depends_target_glfw cmake_object_order_depends_target_zlibstatic
+
+build CMakeFiles\city.dir\city.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\city.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\lab4\render\shader.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\lab4\render\shader.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir\lab4\render
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\entity.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\entity.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\light.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\light.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\geometry.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\geometry.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\utilities.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\utilities.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\primitives.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\primitives.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\skybox.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\skybox.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+build CMakeFiles\city.dir\deferredShader.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\deferredShader.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target city
+
+
+#############################################
+# Link the executable city.exe
+
+build city.exe: CXX_EXECUTABLE_LINKER__city_Debug CMakeFiles\city.dir\city.cpp.obj CMakeFiles\city.dir\lab4\render\shader.cpp.obj CMakeFiles\city.dir\entity.cpp.obj CMakeFiles\city.dir\light.cpp.obj CMakeFiles\city.dir\geometry.cpp.obj CMakeFiles\city.dir\utilities.cpp.obj CMakeFiles\city.dir\primitives.cpp.obj CMakeFiles\city.dir\skybox.cpp.obj CMakeFiles\city.dir\deferredShader.cpp.obj | glfw3ddll.lib gladd.lib assimp-vc143-mtd.lib zlibstaticd.lib || assimp-vc143-mtd.dll gladd.lib glfw3d.dll zlibstaticd.lib
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  LINK_FLAGS = /machine:X86 /debug /INCREMENTAL /subsystem:console
+  LINK_LIBRARIES = glfw3ddll.lib  opengl32.lib  glu32.lib  gladd.lib  assimp-vc143-mtd.lib  zlibstaticd.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
+  OBJECT_DIR = CMakeFiles\city.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_FILE = city.exe
+  TARGET_IMPLIB = city.lib
+  TARGET_PDB = city.pdb
+
 
 #############################################
 # Utility command for package
@@ -3350,6 +3451,8 @@ build UpdateAssimpLibsDebugSymbolsAndDLLs: phony external\assimp\UpdateAssimpLib
 
 build assimp: phony assimp-vc143-mtd.dll
 
+build city: phony city.exe
+
 build glad: phony gladd.lib
 
 build glfw: phony glfw3d.dll
@@ -3372,7 +3475,7 @@ build zlibstatic: phony zlibstaticd.lib
 #############################################
 # Folder: C:/Users/rowan/Documents/College/year 4/graphics/Graphics_Project/cmake-build-debug
 
-build all: phony lab4_skeleton.exe lab4_character.exe test_scene.exe external\all
+build all: phony lab4_skeleton.exe lab4_character.exe test_scene.exe city.exe external\all
 
 # =============================================================================
 
