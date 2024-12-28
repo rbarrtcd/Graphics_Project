@@ -312,6 +312,14 @@ build CMakeFiles\city.dir\deferredShader.cpp.obj: CXX_COMPILER__city_Debug C$:\U
   TARGET_COMPILE_PDB = CMakeFiles\city.dir\
   TARGET_PDB = city.pdb
 
+build CMakeFiles\city.dir\animationData.cpp.obj: CXX_COMPILER__city_Debug C$:\Users\rowan\Documents\College\year$ 4\graphics\Graphics_Project\animationData.cpp || cmake_object_order_depends_target_city
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
+  INCLUDES = -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glfw-3.1.2\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glm-0.9.7.1" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\tinygltf-2.9.3" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\glad-3.3\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\lab4" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\external\assimp\code\..\include" -I"C:\Users\rowan\Documents\College\year 4\graphics\Graphics_Project\cmake-build-debug\external\assimp\code\..\include"
+  OBJECT_DIR = CMakeFiles\city.dir
+  OBJECT_FILE_DIR = CMakeFiles\city.dir
+  TARGET_COMPILE_PDB = CMakeFiles\city.dir\
+  TARGET_PDB = city.pdb
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target city
@@ -320,7 +328,7 @@ build CMakeFiles\city.dir\deferredShader.cpp.obj: CXX_COMPILER__city_Debug C$:\U
 #############################################
 # Link the executable city.exe
 
-build city.exe: CXX_EXECUTABLE_LINKER__city_Debug CMakeFiles\city.dir\city.cpp.obj CMakeFiles\city.dir\lab4\render\shader.cpp.obj CMakeFiles\city.dir\entity.cpp.obj CMakeFiles\city.dir\light.cpp.obj CMakeFiles\city.dir\geometry.cpp.obj CMakeFiles\city.dir\utilities.cpp.obj CMakeFiles\city.dir\primitives.cpp.obj CMakeFiles\city.dir\skybox.cpp.obj CMakeFiles\city.dir\deferredShader.cpp.obj | glfw3ddll.lib gladd.lib assimp-vc143-mtd.lib zlibstaticd.lib || assimp-vc143-mtd.dll gladd.lib glfw3d.dll zlibstaticd.lib
+build city.exe: CXX_EXECUTABLE_LINKER__city_Debug CMakeFiles\city.dir\city.cpp.obj CMakeFiles\city.dir\lab4\render\shader.cpp.obj CMakeFiles\city.dir\entity.cpp.obj CMakeFiles\city.dir\light.cpp.obj CMakeFiles\city.dir\geometry.cpp.obj CMakeFiles\city.dir\utilities.cpp.obj CMakeFiles\city.dir\primitives.cpp.obj CMakeFiles\city.dir\skybox.cpp.obj CMakeFiles\city.dir\deferredShader.cpp.obj CMakeFiles\city.dir\animationData.cpp.obj | glfw3ddll.lib gladd.lib assimp-vc143-mtd.lib zlibstaticd.lib || assimp-vc143-mtd.dll gladd.lib glfw3d.dll zlibstaticd.lib
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
   LINK_FLAGS = /machine:X86 /debug /INCREMENTAL /subsystem:console
   LINK_LIBRARIES = glfw3ddll.lib  opengl32.lib  glu32.lib  gladd.lib  assimp-vc143-mtd.lib  zlibstaticd.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib

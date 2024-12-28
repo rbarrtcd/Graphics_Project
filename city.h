@@ -3,6 +3,7 @@
 //
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <memory>
 
 #include "string.h"
 #include "geometry.h"
@@ -60,6 +61,8 @@ class Scene{
 public:
      std::vector<City*> cities;
      std::unordered_map<std::string, GLuint> textures;
+    std::unordered_map<std::string, std::unique_ptr<MeshData>> models;
+    std::unordered_map<std::string, std::unique_ptr<AnimationData>> animations;
      std::vector<Entity*> entities;
      std::vector<Ped*> peds;
      std::vector<Light*> lights;
@@ -68,7 +71,9 @@ public:
      bool isDaytime;
 
     Scene();
+    MeshData* getModel(const std::string& filepath);
      GLuint getTexture(const std::string& filepath);
+    AnimationData* getAnimation(const std::string& filepath);
      void render();
      void lightRender();
 };

@@ -37,3 +37,30 @@ MeshData deepCopyMeshData(const MeshData& original) {
             copiedUVBufferData
     );
 }
+
+void extractMeshDataToVectors( MeshData& meshData,
+                              std::vector<GLfloat>& vertices,
+                              std::vector<GLfloat>& normals,
+                              std::vector<GLfloat>& colors,
+                              std::vector<GLuint>& indices,
+                              std::vector<GLfloat>& uvs) {
+    // Copy vertex data
+    vertices.assign(meshData.vertex_buffer_data,
+                    meshData.vertex_buffer_data + meshData.numVertices * 3);
+
+    // Copy normal data
+    normals.assign(meshData.normal_buffer_data,
+                   meshData.normal_buffer_data + meshData.numVertices * 3);
+
+    // Copy color data
+    colors.assign(meshData.color_buffer_data,
+                  meshData.color_buffer_data + meshData.numVertices * 3);
+
+    // Copy index data
+    indices.assign(meshData.index_buffer_data,
+                   meshData.index_buffer_data + meshData.numIndices);
+
+    // Copy UV data
+    uvs.assign(meshData.uv_buffer_data,
+               meshData.uv_buffer_data + meshData.numVertices * 2);
+}

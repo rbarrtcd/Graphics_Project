@@ -10,7 +10,9 @@
 
 #include <vector>
 #include <unordered_map>
+#include <string>
 #include "glm/gtc/quaternion.hpp"
+
 
 struct BoneInfo {
     int index;
@@ -66,12 +68,24 @@ struct BoneNode {
 
 
 struct AnimationData {
+    AnimationData()
+            : rootIndex(-1) // Initialize rootIndex to a default value (you can set it to whatever makes sense)
+    {
+        // Vectors are automatically initialized to empty
+        // No need to manually initialize them, but can set initial sizes if needed
+    }
+
     std::vector<BoneNode> bones;      // All bones in a hierarchy
     std::vector<Vertex> vertices;     // Mesh vertices
     std::vector<unsigned int> indices; // Mesh indices
     std::vector<AnimationTrack>animations;
     int rootIndex;
 };
+
+
+
+
+AnimationData deepCopyAnimData(AnimationData& animData);
 
 
 #endif //LAB4_ANIMATIONDATA_H

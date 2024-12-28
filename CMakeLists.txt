@@ -71,6 +71,7 @@ add_executable(city
 		primitives.cpp
 		skybox.cpp
 		deferredShader.cpp
+		animationData.cpp
 		)
 
 target_link_libraries(city

@@ -42,6 +42,7 @@ public:
     void initialize(MeshData meshData, GLuint texture_ID);
     void render(glm::mat4 cameraMatrix);
     void lightRender(GLuint lightShader, Light light);
+    void Geometry::setupBuffers();
     void cleanup();
 
 

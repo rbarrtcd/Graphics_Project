@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
+
 #ifndef LAB4_PRIMITIVES_H
 #define LAB4_PRIMITIVES_H
 
@@ -1038,5 +1040,13 @@ static const MeshData meshData_building(
 );
 
 MeshData deepCopyMeshData(const MeshData& original);
+
+void extractMeshDataToVectors(MeshData& meshData,
+                              std::vector<GLfloat>& vertices,
+                              std::vector<GLfloat>& normals,
+                              std::vector<GLfloat>& colors,
+                              std::vector<GLuint>& indices,
+                              std::vector<GLfloat>& uvs);
+
 
 #endif //LAB4_PRIMITIVES_H

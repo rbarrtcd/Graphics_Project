@@ -18,6 +18,9 @@ uniform float lIntensity;  // Spotlight intensity
 uniform float lRange;      // Spotlight range
 uniform vec3 lDirection;   // Spotlight direction (forward)
 
+float TILE_SIZE = 640;
+int CITY_SIZE = 10;
+
 float calculateShadow(vec3 fragPos, vec3 lightPosition, float lightRange) {
     // Calculate light direction (towards the spotlight)
     vec3 fragToLight = fragPos - lightPosition;
@@ -53,7 +56,14 @@ void main() {
         vec3 fragPos = texture(gPosition, TexCoord).rgb;
         vec3 normal = texture(gNormal, TexCoord).rgb;
         vec3 albedo = texture(gColour, TexCoord).rgb;
-
+        fragPos.x = mod(fragPos.x, (CITY_SIZE*TILE_SIZE));
+        if (fragPos.x < 0){
+            fragPos.x += (CITY_SIZE*TILE_SIZE);
+        }
+        fragPos.z = mod(fragPos.z, (CITY_SIZE*TILE_SIZE));
+        if (fragPos.z < 0){
+            fragPos.z += (CITY_SIZE*TILE_SIZE);
+        }
         vec3 finalColor = vec3(0.0);
 
         // Light properties for the single spotlight

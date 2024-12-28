@@ -66,6 +66,7 @@ public:
     void initializeBuffers();
 
     void setTexture(const std::string &texturePath);
+    void Entity::setTexture(GLuint textureID);
 
     void loadAnimationData(AnimationData animationData);
 

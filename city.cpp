@@ -162,35 +162,25 @@ void Tile::setupRoad(glm::vec3 rotation){
     Geometry * streetLight = new Geometry(streetLightPos1,
                                           glm::vec3(100, 100, 100), rotation+glm::vec3(-90,0,0), geometry_programID);
 
-    std::vector<GLfloat> vertices, normals, uvs, colours;
-    std::vector<GLuint> indices;
-    loadFbx("../assets/models/streetlight/StreetLamp.fbx", vertices, normals, uvs, indices, colours);
-    MeshData streetLampMesh(
-            vertices.size()/3,              // Number of vertices
-            indices.size(),               // Number of indices
-            vertices.data(),              // Vertex buffer data
-            normals.data(),               // Normal buffer data
-            colours.data(),               // Color buffer data
-            indices.data(),               // Index buffer data
-            uvs.data()                    // UV buffer data
-    );
 
-    streetLight->initialize(streetLampMesh, scene.getTexture("../assets/models/streetlight/StreetLampDiffuse.png"));
+    MeshData * streetLampMesh = scene.getModel("../assets/models/streetlight/StreetLamp.fbx");
+
+    streetLight->initialize(*streetLampMesh, scene.getTexture("../assets/models/streetlight/StreetLampDiffuse.png"));
     geometries.push_back(streetLight);
     glm::vec3 streetLightPos2 = centerPos + glm::vec3(xOffset, 0, -zOffset);
     Geometry * streetLight2 = new Geometry(streetLightPos2,glm::vec3(100, 100, 100), rotation+glm::vec3(-90,180,0), geometry_programID);
-    streetLight2->initialize(streetLampMesh, scene.getTexture("../assets/models/streetlight/StreetLampDiffuse.png"));
+    streetLight2->initialize(*streetLampMesh, scene.getTexture("../assets/models/streetlight/StreetLampDiffuse.png"));
     geometries.push_back(streetLight2);
     Geometry * groundPlane = new Geometry(glm::vec3(position.x+(TILE_SIZE/2), position.y, position.z +(TILE_SIZE/2)),
                                           glm::vec3(TILE_SIZE, 1, TILE_SIZE), rotation, geometry_programID);
 
     const float offsetFactor = 0.8;
     streetLightPos1 = centerPos + glm::vec3(-xOffset*offsetFactor, 0, zOffset*offsetFactor);
-    Light * light1 = new Light(streetLightPos1+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 2048, 800, POINT_LIGHT);
+    Light * light1 = new Light(streetLightPos1+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 256, 800, POINT_LIGHT);
     scene.lights.push_back(light1);
 
     streetLightPos2 = centerPos + glm::vec3(xOffset*offsetFactor, 0, -zOffset*offsetFactor);
-    Light * light2 = new Light(streetLightPos2+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 2048, 800, POINT_LIGHT);
+    Light * light2 = new Light(streetLightPos2+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 256, 800, POINT_LIGHT);
     scene.lights.push_back(light2);
 
 
@@ -228,7 +218,7 @@ void Tile::setupBuilding() {
     geometries.push_back(groundPlane);
 
     // Generate a random height scale for the building
-    std::uniform_real_distribution<float> scaleDist(0.1f, 8.9f); // 0.1 to 8.9 to avoid exact zero
+    std::uniform_real_distribution<float> scaleDist(0.2f, 7.2f); // 0.1 to 8.9 to avoid exact zero
     float rand_y_scale = scaleDist(rng);
 
     // Add building geometry
@@ -288,9 +278,23 @@ void City::render(){
     }
 }
 void City::lightRender(Light * light){
-    for (std::vector<Tile *> tileRow : tiles){
-        for (Tile * tile : tileRow){
-            tile->lightRender(light);
+    if (light->lightType == POINT_LIGHT){
+        int gridX = (int)light->position.x/(int)TILE_SIZE;
+        int gridZ = (int)light->position.z/(int)TILE_SIZE;
+        for (int i = -1; i < 2; ++i) {
+            int newX = gridX+i;
+            for (int j = -1; j < 2; ++j) {
+                int newZ = gridZ+j;
+                if (newX >= 0 && newX < 10 && newZ >= 0 && newZ < 10){
+                    tiles[newX][newZ]->lightRender(light);
+                }
+            }
+        }
+    } else {
+        for (std::vector<Tile *> tileRow: tiles) {
+            for (Tile *tile: tileRow) {
+                tile->lightRender(light);
+            }
         }
     }
 }
@@ -310,6 +314,64 @@ void City::lightRender(Light * light){
     return textureID;
 }
 
+MeshData* Scene::getModel(const std::string& filepath) {
+    // Check if the model is already loaded
+    auto it = models.find(filepath);
+    if (it != models.end()) {
+        return it->second.get(); // Return the existing MeshData pointer
+    }
+
+    // Prepare storage for model data
+    std::vector<GLfloat> vertices;
+    std::vector<GLfloat> normals;
+    std::vector<GLfloat> uvs;
+    std::vector<GLuint> indices;
+    std::vector<GLfloat> colors;
+
+    // Load the model
+    if (!loadFbx(filepath, vertices, normals, uvs, indices, colors)) {
+        throw std::runtime_error("Failed to load model: " + filepath);
+    }
+
+    // Create a MeshData instance
+    MeshData originalMeshData(
+            static_cast<int>(vertices.size() / 3),
+            static_cast<int>(indices.size()),
+            vertices.data(),
+            normals.data(),
+            colors.data(),
+            indices.data(),
+            uvs.data()
+    );
+
+    // Deep copy the MeshData instance
+    MeshData* copiedMeshData = new MeshData(deepCopyMeshData(originalMeshData));
+
+    // Store the copied model in the unordered_map
+    models[filepath] = std::unique_ptr<MeshData>(copiedMeshData);
+
+    return copiedMeshData; // Return the newly loaded and copied model
+}
+
+AnimationData* Scene::getAnimation(const std::string& filepath) {
+    // Check if the animation is already loaded
+    auto it = animations.find(filepath);
+    if (it != animations.end()) {
+        return it->second.get(); // Return the existing AnimationData pointer
+    }
+
+    // Load the animation
+    AnimationData animData = AnimationData();
+    animData = loadFBXAnimation(filepath);
+
+    AnimationData* copiedMeshData = new AnimationData(deepCopyAnimData(animData));
+    // Store the animation in the unordered_map
+    animations[filepath] = std::unique_ptr<AnimationData>(copiedMeshData);
+
+    return copiedMeshData; // Return the newly loaded animation
+}
+
+
 void Scene::render(){
     for (City * city : cities){
         city->render();
@@ -325,9 +387,10 @@ void Scene::lightRender() {
         glBindFramebuffer(GL_FRAMEBUFFER, theSun->shadowFBO);
         glViewport(0, 0, theSun->shadowMapSize, theSun->shadowMapSize);
         glClear(GL_DEPTH_BUFFER_BIT);
-        for (City *city: cities) {
-            city->lightRender(theSun);
-        }
+        //for (City *city: cities) {
+        //    city->lightRender(theSun);
+        //}
+        cities[0]->lightRender(theSun);
         for (Ped *ped: peds) {
             ped->lightRender(theSun);
         }
@@ -356,11 +419,27 @@ void Scene::lightRender() {
             glViewport(0, 0, light->shadowMapSize, light->shadowMapSize);
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            for (City *city: cities) {
-                city->lightRender(light);
+            glm::vec3 oldPosition = light->position;
+            light->position.x = fmod(light->position.x, (10*TILE_SIZE));
+            if (light->position.x < 0){
+                light->position.x += (10*TILE_SIZE);
             }
+            light->position.z = fmod(light->position.z, (10*TILE_SIZE));
+            if (light->position.z < 0){
+                light->position.z += (10*TILE_SIZE);
+            }
+
+            light->update();
+            //for (City *city: cities) {
+            //    city->lightRender(light);
+            //}
+            cities[0]->lightRender(light);
+            light->position = oldPosition;
+            light->update();
             for (Ped *ped: peds) {
-                ped->lightRender(light);
+                if (glm::length(light->position - ped->entity->position) < light->lightRange*1.2) {
+                    ped->lightRender(light);
+                }
             }
         }
     }
@@ -370,17 +449,24 @@ void Scene::lightRender() {
 void Ped::initialize() {
     std::vector<GLfloat> vertices, normals, uvs, colours;
     std::vector<GLuint> indices;
-    loadFbx("../assets/models/lowPolyHuman/ManUnity.fbx", vertices, normals, uvs, indices, colours);
-    Entity * theEntity = new Entity(glm::vec3(0,0,0), glm::vec3(10, 10, 10), glm::vec3(-90,0,0), entity_shader, animation_shader);
+    MeshData * pedMesh = scene.getModel("../assets/models/lowPolyHuman/ManUnity.fbx");
+    extractMeshDataToVectors(*pedMesh, vertices, normals, colours, indices, uvs);
+    int randomValueX = (rand() % 15) - 7;
+    int randomValueY = (rand() % 15) - 7;
+    float posX = TILE_SIZE * randomValueX;
+    float posY = TILE_SIZE * randomValueY;
+    Entity * theEntity = new Entity(glm::vec3(posX,0,posY), glm::vec3(10, 10, 10), glm::vec3(-90,0,0), entity_shader, animation_shader);
     entity = theEntity;
-    entity->setTexture("../assets/models/lowPolyHuman/ManColors.png");
+    int maxUnits;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxUnits);
+    entity->setTexture(scene.getTexture("../assets/models/lowPolyHuman/ManColors.png"));
     entity->loadModelData(vertices, normals, colours, indices, uvs);
-    AnimationData testAnimData = loadFBXAnimation("../assets/models/lowPolyHuman/ManUnity.fbx");
+    AnimationData testAnimData = *scene.getAnimation("../assets/models/lowPolyHuman/ManUnity.fbx");
     entity->loadAnimationData(testAnimData);
     entity->playAnimation(2);
     lastTime = glfwGetTime();
     state=0;
-    idleTime = 16.0;
+    idleTime = 1.0;
 }
 
 Scene::Scene(){
@@ -500,22 +586,9 @@ void camera_update(float deltaTime){
         for (Ped *ped : scene.peds) {
             ped->targetPos.x += newPos;
             ped->entity->position.x += newPos;
-            if (glm::length(Camera::position - ped->entity->position) > 10000) {
-                // Step 1: Grid-align the position by dividing x and z by TILE_SIZE
-                ped->entity->position.x = static_cast<int>(ped->entity->position.x) / TILE_SIZE * TILE_SIZE;
-                ped->entity->position.z = static_cast<int>(ped->entity->position.z) / TILE_SIZE * TILE_SIZE;
-
-                // Step 2: Randomly choose a value between 3 to 8 or -3 to -8
-                int randOffsetX = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-                int randOffsetY = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-
-                // Step 3: Apply the random offset to the x and y coordinates
-                ped->entity->position.x += randOffsetX * TILE_SIZE;
-                ped->entity->position.z += randOffsetY * TILE_SIZE;
-
-                // Step 4: Update the target position
-                glm::vec3 diff = ped->targetPos - ped->entity->position;
-                ped->targetPos = ped->entity->position + diff;
+            if (ped->targetPos.x > (TILE_SIZE*10*2)){
+                ped->targetPos.x -= (TILE_SIZE*10*3);
+                ped->entity->position.x -= (TILE_SIZE*10*3);
             }
         }
     }
@@ -527,22 +600,9 @@ void camera_update(float deltaTime){
         for (Ped *ped : scene.peds) {
             ped->targetPos.x -= newPos;
             ped->entity->position.x -= newPos;
-            if (glm::length(Camera::position - ped->entity->position) > 10000) {
-                // Step 1: Grid-align the position by dividing x and z by TILE_SIZE
-                ped->entity->position.x = static_cast<int>(ped->entity->position.x) / TILE_SIZE * TILE_SIZE;
-                ped->entity->position.z = static_cast<int>(ped->entity->position.z) / TILE_SIZE * TILE_SIZE;
-
-                // Step 2: Randomly choose a value between 3 to 8 or -3 to -8
-                int randOffsetX = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-                int randOffsetY = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-
-                // Step 3: Apply the random offset to the x and y coordinates
-                ped->entity->position.x += randOffsetX * TILE_SIZE;
-                ped->entity->position.z += randOffsetY * TILE_SIZE;
-
-                // Step 4: Update the target position
-                glm::vec3 diff = ped->targetPos - ped->entity->position;
-                ped->targetPos = ped->entity->position + diff;
+            if (ped->targetPos.x < -(TILE_SIZE*10*2)){
+                ped->targetPos.x += (TILE_SIZE*10*3);
+                ped->entity->position.x += (TILE_SIZE*10*3);
             }
         }
     }
@@ -554,22 +614,9 @@ void camera_update(float deltaTime){
         for (Ped *ped : scene.peds) {
             ped->targetPos.z += newPos;
             ped->entity->position.z += newPos;
-            if (glm::length(Camera::position - ped->entity->position) > 10000) {
-                // Step 1: Grid-align the position by dividing x and z by TILE_SIZE
-                ped->entity->position.x = static_cast<int>(ped->entity->position.x) / TILE_SIZE * TILE_SIZE;
-                ped->entity->position.z = static_cast<int>(ped->entity->position.z) / TILE_SIZE * TILE_SIZE;
-
-                // Step 2: Randomly choose a value between 3 to 8 or -3 to -8
-                int randOffsetX = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-                int randOffsetY = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-
-                // Step 3: Apply the random offset to the x and y coordinates
-                ped->entity->position.x += randOffsetX * TILE_SIZE;
-                ped->entity->position.z += randOffsetY * TILE_SIZE;
-
-                // Step 4: Update the target position
-                glm::vec3 diff = ped->targetPos - ped->entity->position;
-                ped->targetPos = ped->entity->position + diff;
+            if (ped->targetPos.z > (TILE_SIZE*10*2)){
+                ped->targetPos.z -= (TILE_SIZE*10*3);
+                ped->entity->position.z -= (TILE_SIZE*10*3);
             }
         }
     }
@@ -581,22 +628,9 @@ void camera_update(float deltaTime){
         for (Ped *ped : scene.peds) {
             ped->targetPos.z -= newPos;
             ped->entity->position.z -= newPos;
-            if (glm::length(Camera::position - ped->entity->position) > 10000) {
-                // Step 1: Grid-align the position by dividing x and z by TILE_SIZE
-                ped->entity->position.x = static_cast<int>(ped->entity->position.x) / TILE_SIZE * TILE_SIZE;
-                ped->entity->position.z = static_cast<int>(ped->entity->position.z) / TILE_SIZE * TILE_SIZE;
-
-                // Step 2: Randomly choose a value between 3 to 8 or -3 to -8
-                int randOffsetX = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-                int randOffsetY = (rand() % 6 + 3) * (rand() % 2 == 0 ? 1 : -1);
-
-                // Step 3: Apply the random offset to the x and y coordinates
-                ped->entity->position.x += randOffsetX * TILE_SIZE;
-                ped->entity->position.z += randOffsetY * TILE_SIZE;
-
-                // Step 4: Update the target position
-                glm::vec3 diff = ped->targetPos - ped->entity->position;
-                ped->targetPos = ped->entity->position + diff;
+            if (ped->targetPos.z < -(TILE_SIZE*10*2)){
+                ped->targetPos.z += (TILE_SIZE*10*3);
+                ped->entity->position.z += (TILE_SIZE*10*3);
             }
         }
     }
@@ -752,22 +786,74 @@ int main(void)
     //const char* concrete_texture = "../assets/textures/concrete/gravel_concrete_03_diff_4k.jpg";
 
     std::vector<std::vector<int>> cityTilesTypes = loadTileData("../city_layout.txt");
-    std::vector<std::vector<Tile*>> cityTiles;
-    for (int i = 0; i < cityTilesTypes.size(); ++i) {
+
+    //City * rootCity = new City(glm::vec3((cityDec*(TILE_SIZE*10))-(i*(TILE_SIZE*10)), 0.0, (cityDec*(TILE_SIZE*10))-(j*(TILE_SIZE*10))), cityTiles);
+    //scene.cities.push_back(rootCity);
+
+    std::vector<std::vector<Tile*>> baseCopy;
+    for (int ti = 0; ti < cityTilesTypes.size(); ++ti) {
         std::vector<Tile*> newList;
-        cityTiles.push_back(newList);
-        float xPos = (TILE_SIZE*i);
-        for (int j = 0; j < cityTilesTypes[i].size(); ++j) {
-            Tile * newTile = new Tile(glm::vec3(xPos, 0.0, (j*TILE_SIZE)),cityTilesTypes[i][j]);
-            cityTiles[i].push_back(newTile);
+        baseCopy.push_back(newList);
+        float xPos = 0+(TILE_SIZE*ti);
+        for (int tj = 0; tj < cityTilesTypes[ti].size(); ++tj) {
+            float yPos = 0+(tj*TILE_SIZE);
+            Tile * newTile = new Tile(glm::vec3(xPos, 0.0, yPos),cityTilesTypes[ti][tj]);
+            if (cityTilesTypes[ti][tj] == 1 || cityTilesTypes[ti][tj] == 2){
+                scene.lights.pop_back();
+                scene.lights.pop_back();
+            }
+            baseCopy[ti].push_back(newTile);
         }
 
     }
 
-    City * rootCity = new City(glm::vec3(0.0, 0.0, 0.0), cityTiles);
-    scene.cities.push_back(rootCity);
+    const int citySize = 5;
+    const int cityDec = citySize/2;
+    for (int i = 0; i < citySize; ++i) {
+        float cityPosX = ((cityDec*(TILE_SIZE*10))-(i*(TILE_SIZE*10)));
+        for (int j = 0; j < citySize; ++j) {
+            std::vector<std::vector<Tile*>> cityTiles;
+            float cityPosZ = ((cityDec*(TILE_SIZE*10))-(j*TILE_SIZE*10));
+            for (int ti = 0; ti < cityTilesTypes.size(); ++ti) {
+                std::vector<Tile*> newList;
+                cityTiles.push_back(newList);
+                float xPos = cityPosX+(TILE_SIZE*ti);
+                for (int tj = 0; tj < cityTilesTypes[ti].size(); ++tj) {
+                    float zPos = cityPosZ+(tj*TILE_SIZE);
+                    Tile * newTile = new Tile(glm::vec3(xPos, 0.0, zPos),cityTilesTypes[ti][tj]);
+                    Tile * baseTile = baseCopy[ti][tj];
+                    if (cityTilesTypes[ti][tj] == 0) {
+                        for (int k = 0; k < newTile->geometries.size(); k++) {
+                            if (baseTile->geometries[k]->scale.y > 5) {
+                                newTile->geometries[k]->textureID = baseTile->geometries[k]->textureID;
+                                newTile->geometries[k]->position.y = baseTile->geometries[k]->position.y;
+                                newTile->geometries[k]->scale.y = baseTile->geometries[k]->scale.y;
+                                newTile->geometries[k]->modelMatrix = computeModelMatrix(newTile->geometries[k]->position,
+                                                                                         newTile->geometries[k]->rotation,
+                                                                                         newTile->geometries[k]->scale);
 
-    int numberOfPeds = 0;
+                                memcpy(newTile->geometries[k]->uv_buffer_data, baseTile->geometries[k]->uv_buffer_data,
+                                       sizeof(GLfloat) * (baseTile->geometries[k]->numVertices * 2));
+                                newTile->geometries[k]->setupBuffers();
+                            }
+                        }
+                    }
+
+                    cityTiles[ti].push_back(newTile);
+                }
+
+            }
+            City * newCity = new City(glm::vec3(cityPosX, 0.0, cityPosZ), cityTiles);
+            scene.cities.push_back(newCity);
+
+
+        }
+    }
+    std::swap(scene.cities[0], scene.cities[(citySize*citySize)/2]);
+    //City * rootCity = new City(glm::vec3(0.0, 0.0, 0.0), cityTiles);
+    //scene.cities.push_back(rootCity);
+
+    int numberOfPeds = 70;
     for (int i = 0; i < numberOfPeds; ++i) {
         Ped * newPed = new Ped();
         newPed->initialize();

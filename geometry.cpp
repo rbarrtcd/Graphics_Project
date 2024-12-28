@@ -48,6 +48,18 @@ void Geometry::initialize(MeshData meshData, GLuint texture_ID) {
     modelMatrix = computeModelMatrix(position, rotation, scale);
     transformNormals(normal_buffer_data, numVertices, modelMatrix);
 
+    setupBuffers();
+
+    // Shader handles
+    mvpMatrixID = glGetUniformLocation(programID, "MVP");
+    modelMatrixID = glGetUniformLocation(programID, "modelMatrix");
+
+    //textureID = LoadTextureTileBox(texture_file_path);
+    textureID = texture_ID;
+    textureSamplerID = glGetUniformLocation(programID, "textureSampler");
+}
+
+void Geometry::setupBuffers(){
     glGenVertexArrays(1, &vertexArrayID);
     glBindVertexArray(vertexArrayID);
 
@@ -75,16 +87,7 @@ void Geometry::initialize(MeshData meshData, GLuint texture_ID) {
     glGenBuffers(1, &indexBufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), index_buffer_data, GL_STATIC_DRAW);
-
-    // Shader handles
-    mvpMatrixID = glGetUniformLocation(programID, "MVP");
-    modelMatrixID = glGetUniformLocation(programID, "modelMatrix");
-
-    //textureID = LoadTextureTileBox(texture_file_path);
-    textureID = texture_ID;
-    textureSamplerID = glGetUniformLocation(programID, "textureSampler");
 }
-
 
 void Geometry::render(glm::mat4 cameraMatrix) {
     glUseProgram(programID);

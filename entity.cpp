@@ -136,6 +136,10 @@ void Entity::setTexture(const std::string& texturePath){
     textureID = LoadTextureTileBox(texturePath.c_str());
 }
 
+void Entity::setTexture(GLuint newTextureID){
+    textureID = newTextureID;
+}
+
 void Entity::loadAnimationData(AnimationData animationData) {
     this->animationData = animationData;
 
