@@ -69,36 +69,40 @@ void main() {
 
         for (int i = 0; i < MAX_LIGHTS; ++i) {
             // Light properties
+
             vec3 lightPosition = lPosition[i];
+
             vec3 lightColor = lColour[i];
             float lightIntensity = lIntensity[i];
             float lightRange = lRange[i];
-            float shadow = calculateShadow(fragPos, lightPosition, lightRange, i);
-            if (shadow == 1.0){
+            if (length(lightPosition-fragPos) < lightRange) {
+                float shadow = calculateShadow(fragPos, lightPosition, lightRange, i);
+                if (shadow == 1.0){
 
-                // Calculate lighting
-                vec3 lightDir = lightPosition - fragPos;
-                float distance = length(lightDir);
-                lightDir = normalize(lightDir);
+                    // Calculate lighting
+                    vec3 lightDir = lightPosition - fragPos;
+                    float distance = length(lightDir);
+                    lightDir = normalize(lightDir);
 
-                float lambert = max(dot(normal, lightDir), 0.02) / pow(distance, 2);
-                vec3 diffuse = lambert * (lightIntensity * lightColor) * albedo;
+                    float lambert = max(dot(normal, lightDir), 0.02) / pow(distance, 2);
+                    vec3 diffuse = lambert * (lightIntensity * lightColor) * albedo;
 
-                // Apply shadow
+                    // Apply shadow
 
 
-                finalColor += diffuse * shadow;
+                    finalColor += diffuse * shadow;
 
-                //finalColor += diffuse;
+                    //finalColor += diffuse;
+                }
             }
         }
 
         // Tone mapping and gamma correction
         vec3 toneMapped = finalColor / (1.0 + finalColor);
         vec3 correctedColor = pow(toneMapped, vec3(1.0 / 2.2));
-        //if (length(correctedColor) < 0.05) {
-        //    correctedColor = normalize(albedo) * 0.05;
-        //}
+        if (length(correctedColor) < 0.05) {
+            correctedColor = albedo * 0.05;
+        }
 
         FragColor = vec4(correctedColor, 1.0);
 

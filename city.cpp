@@ -176,11 +176,11 @@ void Tile::setupRoad(glm::vec3 rotation){
 
     const float offsetFactor = 0.8;
     streetLightPos1 = centerPos + glm::vec3(-xOffset*offsetFactor, 0, zOffset*offsetFactor);
-    Light * light1 = new Light(streetLightPos1+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 512, 800, POINT_LIGHT);
+    Light * light1 = new Light(streetLightPos1+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 512, 1100, POINT_LIGHT);
     scene.lights.push_back(light1);
 
     streetLightPos2 = centerPos + glm::vec3(xOffset*offsetFactor, 0, -zOffset*offsetFactor);
-    Light * light2 = new Light(streetLightPos2+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 512, 800, POINT_LIGHT);
+    Light * light2 = new Light(streetLightPos2+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 512, 1100, POINT_LIGHT);
     scene.lights.push_back(light2);
 
 
@@ -388,9 +388,7 @@ void Scene::lightRender() {
         glBindFramebuffer(GL_FRAMEBUFFER, theSun->shadowFBO);
         glViewport(0, 0, theSun->shadowMapSize, theSun->shadowMapSize);
         glClear(GL_DEPTH_BUFFER_BIT);
-        //for (City *city: cities) {
-        //    city->lightRender(theSun);
-        //}
+
         cities[0]->lightRender(theSun);
         for (Ped *ped: peds) {
             ped->lightRender(theSun);
@@ -398,16 +396,32 @@ void Scene::lightRender() {
     }else{
 
 // Calculate distances and store them alongside light pointers
+
         std::vector<std::pair<float, Light*>> distances;
         closeLights.clear();
-        for (Light *light : lights) {
-            float distance = glm::distance(light->position, Camera::position);
+        glm::vec3 cameraDirection = glm::normalize(Camera::lookAt - Camera::position);
+        cameraDirection.y = 0;
+        float lowerWeight = 0.5;
+        float upperWeight = 2.0;
+        for (Light* light : lights) {
+            // Vector from the camera to the light
+            glm::vec3 cameraToLight = glm::normalize(light->position - Camera::position);
+            cameraToLight.y = 0;
+
+            // Compute the dot product and scale it to [lowerWeight, upperWeight]
+            float dotProduct = glm::dot(cameraDirection, cameraToLight);
+            float weight = upperWeight + (lowerWeight - upperWeight) * ((dotProduct + 1.0f) / 2.0f); // Scale to [0, 1] and then to [lowerWeight, upperWeight]
+
+            // Compute the weighted distance
+            float distance = glm::distance(light->position, Camera::position) * weight;
+
+            // Store the weighted distance and the light
             distances.emplace_back(distance, light);
         }
 
-// Sort the lights by distance
-        std::sort(distances.begin(), distances.end(), [](const auto &a, const auto &b) {
-            return a.first < b.first; // Sort by distance (ascending)
+// Sort the lights by the weighted distance
+        std::sort(distances.begin(), distances.end(), [](const auto& a, const auto& b) {
+            return a.first < b.first; // Sort by weighted distance (ascending)
         });
 
 // Select the closest MAX_LIGHTS lights
@@ -431,9 +445,7 @@ void Scene::lightRender() {
             }
 
             light->update();
-            //for (City *city: cities) {
-            //    city->lightRender(light);
-            //}
+
             cities[0]->lightRender(light);
             light->position = oldPosition;
             light->update();
@@ -773,12 +785,7 @@ int main(void)
     DeferredShader * deferredShader = new DeferredShader(lightingPass_shader);
     deferredShader->initialize();
 
-    //const char* concrete_texture = "../assets/textures/concrete/gravel_concrete_03_diff_4k.jpg";
-
     std::vector<std::vector<int>> cityTilesTypes = loadTileData("../city_layout.txt");
-
-    //City * rootCity = new City(glm::vec3((cityDec*(TILE_SIZE*10))-(i*(TILE_SIZE*10)), 0.0, (cityDec*(TILE_SIZE*10))-(j*(TILE_SIZE*10))), cityTiles);
-    //scene.cities.push_back(rootCity);
 
     std::vector<std::vector<Tile*>> baseCopy;
     for (int ti = 0; ti < cityTilesTypes.size(); ++ti) {
@@ -840,10 +847,8 @@ int main(void)
         }
     }
     std::swap(scene.cities[0], scene.cities[(citySize*citySize)/2]);
-    //City * rootCity = new City(glm::vec3(0.0, 0.0, 0.0), cityTiles);
-    //scene.cities.push_back(rootCity);
 
-    int numberOfPeds = 70;
+    int numberOfPeds = 30;
     for (int i = 0; i < numberOfPeds; ++i) {
         Ped * newPed = new Ped();
         newPed->initialize();
@@ -860,16 +865,16 @@ int main(void)
     glm::mat4 viewMatrix, projectionMatrix;
     glm::float32 FoV = 70;
     glm::float32 zNear = 0.4f;
-    glm::float32 zFar = (TILE_SIZE*10*3);
+    glm::float32 zFar = (TILE_SIZE*10*2.5);
     //projectionMatrix = glm::perspective(glm::radians(FoV), (float) screenWidth / (float) screenHeight, zNear, zFar);
     Camera::updateProjectionMatrix(glm::radians(FoV), (float) screenWidth / (float) screenHeight, zNear, zFar);
 
     for (int i = 0; i < MAX_LIGHTS; ++i) {
-        Light * newLight = new Light(glm::vec3(0, -5000, 0), glm::vec3(0, 0, 0), 0.0, 1.0, 1, POINT_LIGHT);
+        Light * newLight = new Light(glm::vec3(-50000, -50000, -50000), glm::vec3(0, 0, 0), 0.0, 1.0, 1, POINT_LIGHT);
         scene.lights.push_back(newLight);
     }
 
-    Light * theSun = new Light(glm::vec3(0, 20000, 0), glm::vec3(244.0/255.0, 233.0/255.0, 155.0/255.0), 1.0, 4096, 40000.0, SPOT_LIGHT);
+    Light * theSun = new Light(glm::vec3(0, 20000, 0), glm::vec3(244.0/255.0, 233.0/255.0, 155.0/255.0), 1.0, 8192, 40000.0, SPOT_LIGHT);
     scene.theSun = theSun;
     theSun->setDir(glm::normalize( glm::vec3(5*TILE_SIZE, 0, 5*TILE_SIZE)-theSun->position));
 
