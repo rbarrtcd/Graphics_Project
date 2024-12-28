@@ -29,6 +29,8 @@ public:
     void lightRender(Light * light);
 };
 
+
+
 class Tile{
 public:
     int tileType;

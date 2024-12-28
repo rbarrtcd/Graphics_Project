@@ -184,6 +184,7 @@ void Entity::computeGlobalBoneTransform(
         const glm::mat4& parentTransform,
         std::vector<glm::mat4>& globalTransforms
 ) {
+    if (boneIndex == -1){return;}
     // Get the current bone
     const BoneNode& bone = animationData.bones[boneIndex];
 

@@ -176,11 +176,11 @@ void Tile::setupRoad(glm::vec3 rotation){
 
     const float offsetFactor = 0.8;
     streetLightPos1 = centerPos + glm::vec3(-xOffset*offsetFactor, 0, zOffset*offsetFactor);
-    Light * light1 = new Light(streetLightPos1+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 256, 800, POINT_LIGHT);
+    Light * light1 = new Light(streetLightPos1+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 512, 800, POINT_LIGHT);
     scene.lights.push_back(light1);
 
     streetLightPos2 = centerPos + glm::vec3(xOffset*offsetFactor, 0, -zOffset*offsetFactor);
-    Light * light2 = new Light(streetLightPos2+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 256, 800, POINT_LIGHT);
+    Light * light2 = new Light(streetLightPos2+glm::vec3(0,325,0), glm::vec3(255, 164.65, 38.43), 100.0, 512, 800, POINT_LIGHT);
     scene.lights.push_back(light2);
 
 
@@ -379,6 +379,7 @@ void Scene::render(){
     for (Ped * ped : peds){
         ped->render();
     }
+
 }
 
 
@@ -457,8 +458,6 @@ void Ped::initialize() {
     float posY = TILE_SIZE * randomValueY;
     Entity * theEntity = new Entity(glm::vec3(posX,0,posY), glm::vec3(10, 10, 10), glm::vec3(-90,0,0), entity_shader, animation_shader);
     entity = theEntity;
-    int maxUnits;
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxUnits);
     entity->setTexture(scene.getTexture("../assets/models/lowPolyHuman/ManColors.png"));
     entity->loadModelData(vertices, normals, colours, indices, uvs);
     AnimationData testAnimData = *scene.getAnimation("../assets/models/lowPolyHuman/ManUnity.fbx");
@@ -541,18 +540,9 @@ void Ped::lightRender(Light *light) {
     }
 }
 
-
-
-
-
-
 float clamp(float x, float min, float max){
     return std::min(std::max(x, max), min);
 }
-
-
-
-
 
 void camera_update(float deltaTime){
     glm::vec3 forward = glm::normalize(Camera::lookAt - Camera::position);
@@ -860,6 +850,8 @@ int main(void)
         scene.peds.push_back(newPed);
     }
 
+
+
     // Camera setup
     Camera::position.y = viewDistance * cos(viewPolar);
     Camera::position.x = viewDistance * cos(viewAzimuth);
@@ -976,8 +968,8 @@ int main(void)
         scene.lightRender();
         lightRenderTime += glfwGetTime() - startLightRenderTime;
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            saveGBufferTextures(gBuffer, gColour, gPosition, gNormal, rboDepth, gEmit, 1920, 1080);
-            //saveDepthTexture(theSun->shadowFBO, "sunDepth2.png");
+            //saveGBufferTextures(gBuffer, gColour, gPosition, gNormal, rboDepth, gEmit, 1920, 1080);
+            saveDepthTexture(theSun->shadowFBO, "sunDepth2.png");
         }
 
         // Render to screen
