@@ -85,6 +85,7 @@ void Geometry::initialize(MeshData meshData, GLuint texture_ID) {
     textureSamplerID = glGetUniformLocation(programID, "textureSampler");
 }
 
+
 void Geometry::render(glm::mat4 cameraMatrix) {
     glUseProgram(programID);
 
@@ -134,11 +135,16 @@ void Geometry::lightRender(GLuint lightShader, Light light) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
-
-    //glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
-    glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices"), 6, GL_FALSE, &light.VPmatrices[0][0][0]);
-
+    glm::mat4 modelMatrix = computeModelMatrix(position, rotation, scale);
+    glm::mat4 MVP =  light.VPmatrix * modelMatrix;
+    if (light.lightType == POINT_LIGHT) {
+        glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(lightShader, "shadowMatrices"), 6, GL_FALSE,
+                           &light.VPmatrices[0][0][0]);
+    } else{
+        glUniformMatrix4fv(glGetUniformLocation(lightShader, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(lightShader, "MVP"), 1, GL_FALSE, &MVP[0][0]);
+    }
     glUniform3fv(glGetUniformLocation(lightShader, "lightPos"), 1, &light.position[0]);
     glUniform1f(glGetUniformLocation(lightShader, "farPlane"), light.lightRange);
 

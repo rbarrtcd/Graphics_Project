@@ -424,6 +424,99 @@ bool loadFbx(const std::string& fbxFilePath,
     return true;
 }
 
+bool loadFbx(const std::string& fbxFilePath,
+             std::vector<GLfloat>& vertices,
+             std::vector<GLfloat>& normals,
+             std::vector<GLfloat>& uvs,
+             std::vector<GLuint>& indices,
+             std::vector<GLfloat>& colors,
+             std::vector<std::string>& texturePaths) {
+    // Create an instance of the Assimp Importer
+    Assimp::Importer importer;
+
+    // Read the file
+    const aiScene* scene = importer.ReadFile(fbxFilePath,
+                                             aiProcess_Triangulate |       // Triangulate all faces
+                                             aiProcess_GenSmoothNormals | // Generate smooth normals if not present
+                                             aiProcess_FlipUVs);
+
+    // Check if the file was successfully loaded
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
+        return false;
+    }
+
+    bool texturesFound = false;
+
+    // Iterate through meshes in the scene
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+        aiMesh* mesh = scene->mMeshes[i];
+
+        // Process vertices
+        for (unsigned int v = 0; v < mesh->mNumVertices; ++v) {
+            // Vertex position
+            vertices.push_back(mesh->mVertices[v].x);
+            vertices.push_back(mesh->mVertices[v].y);
+            vertices.push_back(mesh->mVertices[v].z);
+
+            // Vertex normals
+            if (mesh->HasNormals()) {
+                normals.push_back(mesh->mNormals[v].x);
+                normals.push_back(mesh->mNormals[v].y);
+                normals.push_back(mesh->mNormals[v].z);
+            }
+
+            // Texture coordinates (UVs)
+            if (mesh->mTextureCoords[0]) { // Assimp supports up to 8 UV channels; we use the first
+                uvs.push_back(mesh->mTextureCoords[0][v].x);
+                uvs.push_back(mesh->mTextureCoords[0][v].y);
+            } else {
+                uvs.push_back(0.0f); // Default value if no UVs are present
+                uvs.push_back(0.0f);
+            }
+
+            // Vertex colors
+            if (mesh->HasVertexColors(0)) { // Assimp supports up to 8 color channels; we use the first
+                colors.push_back(mesh->mColors[0][v].r);
+                colors.push_back(mesh->mColors[0][v].g);
+                colors.push_back(mesh->mColors[0][v].b);
+            } else {
+                colors.push_back(1.0f); // Default color (white)
+                colors.push_back(1.0f);
+                colors.push_back(1.0f);
+            }
+        }
+
+        // Process indices
+        for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
+            aiFace face = mesh->mFaces[f];
+            for (unsigned int j = 0; j < face.mNumIndices; ++j) {
+                indices.push_back(face.mIndices[j]);
+            }
+        }
+    }
+
+    // Process textures
+    for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
+        aiMaterial* material = scene->mMaterials[i];
+
+        for (unsigned int t = 0; t < material->GetTextureCount(aiTextureType_DIFFUSE); ++t) {
+            aiString path;
+            if (material->GetTexture(aiTextureType_DIFFUSE, t, &path) == AI_SUCCESS) {
+                texturePaths.push_back(path.C_Str());
+                texturesFound = true;
+            }
+        }
+    }
+
+    if (!texturesFound) {
+        std::cout << "No texture data found in the FBX file." << std::endl;
+    }
+
+    return true;
+}
+
+
 AnimationData buildBoneHierarchy(const aiScene* scene, FileAnimationData& fileAnimationData) {
     AnimationData hierarchicalData;
     // Map bone names to their indices in the bone list
@@ -669,3 +762,56 @@ void createGBuffer(GLuint* gBuffer, GLuint* gColour, GLuint* gPosition, GLuint* 
 }
 
 
+void saveDepthTexture(GLuint fbo, std::string filename) {
+    // Bind the framebuffer to read its texture
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // Get the width and height of the texture attached to the framebuffer
+    GLuint attachedTexture;
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachedTexture);
+
+    if (attachedTexture == 0) {
+        std::cerr << "Error: No depth texture attached to the framebuffer!" << std::endl;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        return;
+    }
+
+    // Query texture width and height
+    GLint width, height;
+    glBindTexture(GL_TEXTURE_2D, attachedTexture);  // Ensure we're querying the correct texture
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // If the texture is cube map, you may need to adjust the binding to query faces (assuming you want depth from a single face)
+    // In that case, you would need to check the attachment type and query the texture accordingly.
+
+    int channels = 3;
+
+    std::vector<float> depth(width * height);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glReadBuffer(GL_DEPTH_COMPONENT);
+    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data());
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    std::vector<unsigned char> img(width * height * 3);
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            // Invert the row we're looking at so image is right way up
+            float depthValue = depth[j + ((height - 1 - i) * width)];
+
+            // Invert depth for better contrast (depths closer to 1 are stretched)
+            float scaledDepth = 1.0 - pow((1.0f - depthValue), 0.5);
+
+            unsigned char intensity = static_cast<unsigned char>(scaledDepth * 255);
+
+            img[3 * (j + (i * width))] = intensity;
+            img[3 * (j + (i * width)) + 1] = intensity;
+            img[3 * (j + (i * width)) + 2] = intensity;
+        }
+    }
+
+    int rc = stbi_write_png(filename.c_str(), width, height, channels, img.data(), width * channels);
+    std::cout << "rc=" << rc << std::endl;
+}

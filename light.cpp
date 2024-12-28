@@ -9,37 +9,47 @@
 #include "light.h"
 #include "utilities.h"
 
-GLuint createDepthCubeMapFramebuffer(int resolution, GLuint* depthCubeMap) {
+GLuint createDepthFramebuffer(int resolution, GLuint* depthTexture, LightType type) {
     GLuint fbo;
-
-    // Generate and bind the framebuffer
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    // Generate the cube map texture
-    glGenTextures(1, depthCubeMap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, *depthCubeMap);
+    if (type == POINT_LIGHT) {
+        // Create cube map texture for point light
+        glGenTextures(1, depthTexture);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, *depthTexture);
 
+        // Set up the cube map faces for depth
+        for (int i = 0; i < 6; ++i) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        }
 
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X , 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X , 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y , 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y , 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z , 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z , 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        // Cube map texture parameters
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+        // Attach cube map texture as depth attachment
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, *depthTexture, 0);
+    } else {
+        // Create single depth map for spotlight
+        glGenTextures(1, depthTexture);
+        glBindTexture(GL_TEXTURE_2D, *depthTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-    // Set texture parameters
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        // Texture parameters for spotlight depth map
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    // Attach the cube map texture to the framebuffer as the depth attachment
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, *depthCubeMap, 0);
+        // Attach depth map as depth attachment
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, *depthTexture, 0);
+    }
 
-    // Disable color buffer outputs since this is a depth-only framebuffer
+    // Disable color buffer outputs
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
@@ -50,56 +60,63 @@ GLuint createDepthCubeMapFramebuffer(int resolution, GLuint* depthCubeMap) {
         return 0;
     }
 
-    // Unbind the framebuffer
+    // Unbind framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     return fbo;
 }
 
 
 // Constructor definition
-Light::Light(glm::vec3 position, glm::vec3 colour, float intensity, int shadowMapSize, float lightRange) {
-    this->position = position;
-    this->colour = colour;
-    this->intensity = intensity;
-    this->shadowMapSize = shadowMapSize;
-    this->lightRange = lightRange;
-    this->shadowCubeMap = 0;
+Light::Light(glm::vec3 position, glm::vec3 colour, float intensity, int shadowMapSize, float lightRange, LightType type)
+        : position(position), colour(colour), intensity(intensity), shadowMapSize(shadowMapSize), lightRange(lightRange), lightType(type) {
+    shadowCubeMap = 0;
+    shadowMap = 0;
 
-    // Create the depth cube map and framebuffer
-    shadowFBO = createDepthCubeMapFramebuffer(shadowMapSize, &shadowCubeMap);
+    // Create the appropriate depth texture and framebuffer
+    shadowFBO = createDepthFramebuffer(shadowMapSize, (lightType == POINT_LIGHT) ? &shadowCubeMap : &shadowMap, lightType);
 
     update();
 }
-
 // update() method definition
 void Light::update() {
     calculateVPMatrices();
 }
 
-// calculateVPMatrices() method definition
-void Light::calculateVPMatrices() {
-    lightProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, lightRange);
-    glm::vec3 directions[6] = {
-            glm::vec3(1.0f, 0.0f, 0.0f),   // +X
-            glm::vec3(-1.0f, 0.0f, 0.0f),  // -X
-            glm::vec3(0.0f, 1.0f, 0.0f),   // +Y
-            glm::vec3(0.0f, -1.0f, 0.0f),  // -Y
-            glm::vec3(0.0f, 0.0f, 1.0f),   // +Z
-            glm::vec3(0.0f, 0.0f, -1.0f)   // -Z
-    };
-
-    glm::vec3 upVectors[6] = {
-            glm::vec3(0.0f, -1.0f, 0.0f),  // +X
-            glm::vec3(0.0f, -1.0f, 0.0f),  // -X
-            glm::vec3(0.0f, 0.0f, 1.0f),   // +Y
-            glm::vec3(0.0f, 0.0f, -1.0f),  // -Y
-            glm::vec3(0.0f, -1.0f, 0.0f),  // +Z
-            glm::vec3(0.0f, -1.0f, 0.0f)   // -Z
-    };
-
-    for (int i = 0; i < 6; ++i) {
-        VPmatrices[i] = lightProjectionMatrix * glm::lookAt(position, position + directions[i], upVectors[i]);
-    }
+void Light::setDir(glm::vec3 dir){
+    direction = dir;
+    update();
 }
 
+// calculateVPMatrices() method definition
+void Light::calculateVPMatrices() {
+    if (lightType == POINT_LIGHT) {
+        lightProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, lightRange);
+        glm::vec3 directions[6] = {
+                glm::vec3(1.0f, 0.0f, 0.0f),   // +X
+                glm::vec3(-1.0f, 0.0f, 0.0f),  // -X
+                glm::vec3(0.0f, 1.0f, 0.0f),   // +Y
+                glm::vec3(0.0f, -1.0f, 0.0f),  // -Y
+                glm::vec3(0.0f, 0.0f, 1.0f),   // +Z
+                glm::vec3(0.0f, 0.0f, -1.0f)   // -Z
+        };
+
+        glm::vec3 upVectors[6] = {
+                glm::vec3(0.0f, -1.0f, 0.0f),  // +X
+                glm::vec3(0.0f, -1.0f, 0.0f),  // -X
+                glm::vec3(0.0f, 0.0f, 1.0f),   // +Y
+                glm::vec3(0.0f, 0.0f, -1.0f),  // -Y
+                glm::vec3(0.0f, -1.0f, 0.0f),  // +Z
+                glm::vec3(0.0f, -1.0f, 0.0f)   // -Z
+        };
+
+        for (int i = 0; i < 6; ++i) {
+            VPmatrices[i] = lightProjectionMatrix * glm::lookAt(position, position + directions[i], upVectors[i]);
+        }
+    } else {
+        direction = glm::normalize(direction);
+        glm::vec3 anyUp = glm::normalize(glm::cross(direction, -direction));
+        // For spotlight (single depth map), calculate projection and view matrix
+        lightProjectionMatrix = glm::perspective(glm::radians(30.0f), 1.0f, 1.0f, lightRange);
+        VPmatrix = lightProjectionMatrix * glm::lookAt(position, position+direction, glm::vec3(0.0, 0.0, 1.0));
+    }
+}

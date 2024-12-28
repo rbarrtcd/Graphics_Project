@@ -957,6 +957,86 @@ static MeshData meshData_corner(
         const_cast<GLfloat*>(corner_uv)
 );
 
+static const GLfloat building_vertices[] = {
+        // Front face
+        -0.5f, -0.5f,  0.5f,
+        0.5f, -0.5f,  0.5f,
+        0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f,  0.5f,
 
+        // Back face
+        0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+        -0.5f,  0.5f, -0.5f,
+        0.5f,  0.5f, -0.5f,
+
+        // Left face
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f,  0.5f,
+        -0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f, -0.5f,
+
+        // Right face
+        0.5f, -0.5f,  0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f,  0.5f, -0.5f,
+        0.5f,  0.5f,  0.5f,
+
+        // Top face
+        -0.5f,  0.5f,  0.5f,
+        0.5f,  0.5f,  0.5f,
+        0.5f,  0.5f, -0.5f,
+        -0.5f,  0.5f, -0.5f,
+
+
+};
+
+static const GLfloat building_normals[] = {
+        // Normal data (for simplicity, all normals are assumed to be unit vectors)
+        0.0f, 0.0f,  1.0f,   0.0f, 0.0f,  1.0f,   0.0f, 0.0f,  1.0f,   0.0f, 0.0f,  1.0f,
+        0.0f, 0.0f, -1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 0.0f, -1.0f,
+        -1.0f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,
+        1.0f, 0.0f,  0.0f,   1.0f, 0.0f,  0.0f,   1.0f, 0.0f,  0.0f,   1.0f, 0.0f,  0.0f,
+        0.0f,  1.0f,  0.0f,   0.0f,  1.0f,  0.0f,   0.0f,  1.0f,  0.0f,   0.0f,  1.0f,  0.0f,
+};
+
+static const GLfloat building_colors[] = {
+        // Colors: Front = red, Back = yellow, etc.
+        1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f,
+};
+
+static const GLuint building_indices[] = {
+        0, 1, 2,   0, 2, 3,   // Front
+        4, 5, 6,   4, 6, 7,   // Back
+        8, 9, 10,  8, 10, 11,  // Left
+        12, 13, 14, 12, 14, 15, // Right
+        16, 17, 18, 16, 18, 19, // Top
+};
+
+static const GLfloat building_uv[] = {
+        // UVs for the cube
+        0.0f, 1.0f,   1.0f, 1.0f,   1.0f, 0.0f,   0.0f, 0.0f, // Front
+        0.0f, 1.0f,   1.0f, 1.0f,   1.0f, 0.0f,   0.0f, 0.0f, // Back
+        0.0f, 1.0f,   1.0f, 1.0f,   1.0f, 0.0f,   0.0f, 0.0f, // Left
+        0.0f, 1.0f,   1.0f, 1.0f,   1.0f, 0.0f,   0.0f, 0.0f, // Right
+        0.0f, 0.0f,   0.0f, 0.0f,   0.0f, 0.0f,   0.0f, 0.0f, // Top
+};
+
+
+static const MeshData meshData_building(
+        20, // numVertices
+        30, // numIndices
+        const_cast<GLfloat*>(building_vertices),
+        const_cast<GLfloat*>(building_normals),
+        const_cast<GLfloat*>(building_colors),
+        const_cast<GLuint*>(building_indices),
+        const_cast<GLfloat*>(building_uv)
+);
+
+MeshData deepCopyMeshData(const MeshData& original);
 
 #endif //LAB4_PRIMITIVES_H

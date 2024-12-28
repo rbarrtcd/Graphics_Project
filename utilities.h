@@ -40,10 +40,20 @@ bool loadFbx(const std::string& fbxFilePath,
              std::vector<GLuint>& indices,
              std::vector<GLfloat>& colors);
 
+bool loadFbx(const std::string& fbxFilePath,
+             std::vector<GLfloat>& vertices,
+             std::vector<GLfloat>& normals,
+             std::vector<GLfloat>& uvs,
+             std::vector<GLuint>& indices,
+             std::vector<GLfloat>& colors,
+             std::vector<std::string>& textures);
+
 AnimationData buildBoneHierarchy(const aiScene* scene, FileAnimationData& fileAnimationData);
 
 AnimationData loadFBXAnimation(const std::string& filePath);
 
 void createGBuffer(GLuint* gBuffer, GLuint* gColour, GLuint* gPosition, GLuint* gNormal, GLuint* rboDepth, GLuint* emit, int width, int height);
+
+void saveDepthTexture(GLuint fbo, std::string filename);
 #endif //LAB4_UTILITIES_H
 

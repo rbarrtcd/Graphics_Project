@@ -9,9 +9,7 @@ uniform sampler2D gNormal;
 uniform sampler2D gColour;
 uniform sampler2D gEmit;
 
-
 const int MAX_LIGHTS = 16;
-
 
 uniform samplerCube  depthMaps[MAX_LIGHTS];
 uniform vec3 lPosition[MAX_LIGHTS];
@@ -20,7 +18,6 @@ uniform float lIntensity[MAX_LIGHTS];
 uniform float lRange[MAX_LIGHTS];
 
 uniform int numLights;
-uniform vec3 viewPos;
 
 float calculateShadow(vec3 fragPos, vec3 lightPosition, float lightRange, const int lightIndex) {
     vec3 fragToLight = fragPos - lightPosition;
@@ -52,7 +49,7 @@ float calculateShadow(vec3 fragPos, vec3 lightPosition, float lightRange, const 
 
 
 
-    float shadowBias = 0.0015;
+    float shadowBias = 0.01;
     float currentDepth = length(fragToLight) / lightRange;
     float shadow = (currentDepth - shadowBias > closestDepth) ? 0.2 : 1.0;
 
@@ -61,7 +58,7 @@ float calculateShadow(vec3 fragPos, vec3 lightPosition, float lightRange, const 
 
 void main() {
     float emit = texture(gEmit, TexCoord).r;
-    if (emit < 0.5){
+    if (emit == 0.0){
         // Retrieve data from G-buffer
         vec3 fragPos = texture(gPosition, TexCoord).rgb;
         vec3 normal = texture(gNormal, TexCoord).rgb;
@@ -70,7 +67,7 @@ void main() {
 
         vec3 finalColor = vec3(0.0);
 
-        for (int i = 0; i < numLights; ++i) {
+        for (int i = 0; i < MAX_LIGHTS; ++i) {
             // Light properties
             vec3 lightPosition = lPosition[i];
             vec3 lightColor = lColour[i];
@@ -84,7 +81,7 @@ void main() {
                 float distance = length(lightDir);
                 lightDir = normalize(lightDir);
 
-                float lambert = max(dot(normal, lightDir), 0.0) / pow(distance, 2);
+                float lambert = max(dot(normal, lightDir), 0.02) / pow(distance, 2);
                 vec3 diffuse = lambert * (lightIntensity * lightColor) * albedo;
 
                 // Apply shadow
@@ -99,17 +96,17 @@ void main() {
         // Tone mapping and gamma correction
         vec3 toneMapped = finalColor / (1.0 + finalColor);
         vec3 correctedColor = pow(toneMapped, vec3(1.0 / 2.2));
-        if (length(correctedColor) < 0.05) {
-            correctedColor = normalize(albedo) * 0.05;
-        }
+        //if (length(correctedColor) < 0.05) {
+        //    correctedColor = normalize(albedo) * 0.05;
+        //}
 
         FragColor = vec4(correctedColor, 1.0);
 
     } else {
         vec3 color = texture(gColour, TexCoord).rgb;
-        if (length(color) < 0.05) {
-            color = normalize(color) * 0.05;
-        }
+        //if (length(color) < 0.05) {
+        //    color = normalize(color) * 0.05;
+        //}
 
         FragColor = vec4(color, 1.0);
     }

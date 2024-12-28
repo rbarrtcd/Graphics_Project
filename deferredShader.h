@@ -24,6 +24,8 @@ public:
 
     // Rendering method
     void render(GLuint gBuffer, GLuint gColour, GLuint gPosition, GLuint gNormal, GLuint gEmit, std::vector<Light*> lights);
+    void sunRender(GLuint gBuffer, GLuint gColour, GLuint gPosition, GLuint gNormal, GLuint gEmit, Light theSun, GLuint shaderID);
+
 
 private:
     // Vertex buffer data for a fullscreen quad

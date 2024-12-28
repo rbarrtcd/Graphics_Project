@@ -59,6 +59,10 @@ void DeferredShader::cleanup() {
 void DeferredShader::render(GLuint gBuffer, GLuint gColour, GLuint gPosition, GLuint gNormal, GLuint gEmit, std::vector<Light*> lights) {
     // Use the shader program
     glUseProgram(programID);
+    gPositionID = glGetUniformLocation(programID, "gPosition");
+    gNormalID = glGetUniformLocation(programID, "gNormal");
+    gAlbedoSpecID = glGetUniformLocation(programID, "gColour");
+    gEmitID = glGetUniformLocation(programID, "gEmit");
 
     // Bind G-buffer textures to texture units
     glActiveTexture(GL_TEXTURE0);
@@ -76,6 +80,7 @@ void DeferredShader::render(GLuint gBuffer, GLuint gColour, GLuint gPosition, GL
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, gEmit);
     glUniform1i(gEmitID, 3);
+
 
     // Prepare light data for uploading
     std::vector<glm::vec3> lightPositions;
@@ -124,3 +129,63 @@ void DeferredShader::render(GLuint gBuffer, GLuint gColour, GLuint gPosition, GL
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 }
+
+void DeferredShader::sunRender(GLuint gBuffer,
+                               GLuint gColour, GLuint gPosition, GLuint gNormal, GLuint gEmit,
+                               Light theSun, GLuint shaderID) {
+    // Use the shader program
+    glUseProgram(shaderID);
+    gPositionID = glGetUniformLocation(shaderID, "gPosition");
+    gNormalID = glGetUniformLocation(shaderID, "gNormal");
+    gAlbedoSpecID = glGetUniformLocation(shaderID, "gColour");
+    gEmitID = glGetUniformLocation(shaderID, "gEmit");
+
+    // Bind G-buffer textures to texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gColour);
+    glUniform1i(gAlbedoSpecID, 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glUniform1i(gPositionID, 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glUniform1i(gNormalID, 2);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, gEmit);
+    glUniform1i(gEmitID, 3);
+
+    glUniform3fv(glGetUniformLocation(shaderID, "lPosition"), 1, &theSun.position[0]);
+    glUniform3fv(glGetUniformLocation(shaderID, "lColour"), 1, &theSun.colour[0]);
+    glUniform1f(glGetUniformLocation(shaderID, "lIntensity"), theSun.intensity);
+    glUniform1f(glGetUniformLocation(shaderID, "lRange"), theSun.lightRange);
+    glUniform3fv(glGetUniformLocation(shaderID, "lDirection"), 1, &theSun.direction[0]);
+
+    glUniformMatrix4fv(glGetUniformLocation(shaderID, "LVP"), 1, GL_FALSE, &theSun.VPmatrix[0][0]);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, theSun.shadowMap);
+    glUniform1i(glGetUniformLocation(shaderID, "depthMap"), 4);
+
+
+    // Bind the vertex array and set up vertex attributes
+    glBindVertexArray(vertexArrayID);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferID);
+
+    // Render the fullscreen quad
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+}
+
