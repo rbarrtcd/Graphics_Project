@@ -16,34 +16,13 @@ include_directories(
 		external/glad-3.3/include/
 		external/assimp/include
 		external/
-		lab4/
+		render/
 )
 
-
-
-add_executable(lab4_skeleton
-	lab4/lab4_skeleton.cpp
-	lab4/render/shader.cpp
-)
-target_link_libraries(lab4_skeleton
-	${OPENGL_LIBRARY}
-	glfw
-	glad
-)
-
-add_executable(lab4_character
-	lab4/lab4_character.cpp
-	lab4/render/shader.cpp
-)
-target_link_libraries(lab4_character
-		${OPENGL_LIBRARY}
-		glfw
-		glad
-		)
 
 add_executable(test_scene
 		test_scene.cpp
-		lab4/render/shader.cpp
+		render/shader.cpp
 		entity.cpp
 		light.cpp
 		geometry.cpp
@@ -63,7 +42,7 @@ target_link_libraries(test_scene
 
 add_executable(city
 		city.cpp
-		lab4/render/shader.cpp
+		render/shader.cpp
 		entity.cpp
 		light.cpp
 		geometry.cpp
