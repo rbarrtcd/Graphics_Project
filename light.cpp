@@ -116,7 +116,7 @@ void Light::calculateVPMatrices() {
         direction = glm::normalize(direction);
         glm::vec3 anyUp = glm::normalize(glm::cross(direction, -direction));
         // For spotlight (single depth map), calculate projection and view matrix
-        lightProjectionMatrix = glm::perspective(glm::radians(30.0f), 1.0f, 1.0f, lightRange);
+        lightProjectionMatrix = glm::perspective(glm::radians(26.0f), 1.0f, 1.0f, lightRange);
         VPmatrix = lightProjectionMatrix * glm::lookAt(position, position+direction, glm::vec3(0.0, 0.0, 1.0));
     }
 }

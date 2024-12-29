@@ -973,7 +973,7 @@ int main(void)
         scene.lightRender();
         lightRenderTime += glfwGetTime() - startLightRenderTime;
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            //saveGBufferTextures(gBuffer, gColour, gPosition, gNormal, rboDepth, gEmit, 1920, 1080);
+            saveGBufferTextures(gBuffer, gColour, gPosition, gNormal, rboDepth, gEmit, 1920, 1080);
             saveDepthTexture(theSun->shadowFBO, "sunDepth2.png");
         }
 
